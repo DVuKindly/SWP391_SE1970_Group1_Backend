@@ -8,11 +8,30 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ClinicManagement.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitClinicDb : Migration
+    public partial class InitClinicD2b : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "Departments",
+                columns: table => new
+                {
+                    DepartmentId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Code = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Departments", x => x.DepartmentId);
+                });
+
             migrationBuilder.CreateTable(
                 name: "Doctors",
                 columns: table => new
@@ -35,25 +54,6 @@ namespace ClinicManagement.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Doctors", x => x.DoctorId);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Exams",
-                columns: table => new
-                {
-                    ExamId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Examination = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    ExaminationType = table.Column<int>(type: "int", nullable: true),
-                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
-                    Id = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Exams", x => x.ExamId);
                 });
 
             migrationBuilder.CreateTable(
@@ -113,6 +113,60 @@ namespace ClinicManagement.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Staffs", x => x.StaffId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Exams",
+                columns: table => new
+                {
+                    ExamId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Examination = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    ExaminationType = table.Column<int>(type: "int", nullable: true),
+                    DepartmentId = table.Column<int>(type: "int", nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    Price = table.Column<decimal>(type: "decimal(18,2)", nullable: true),
+                    Id = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Exams", x => x.ExamId);
+                    table.ForeignKey(
+                        name: "FK_Exams_Departments_DepartmentId",
+                        column: x => x.DepartmentId,
+                        principalTable: "Departments",
+                        principalColumn: "DepartmentId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DoctorDepartments",
+                columns: table => new
+                {
+                    DoctorId = table.Column<int>(type: "int", nullable: false),
+                    DepartmentId = table.Column<int>(type: "int", nullable: false),
+                    IsPrimary = table.Column<bool>(type: "bit", nullable: false, defaultValue: false),
+                    Id = table.Column<int>(type: "int", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DoctorDepartments", x => new { x.DoctorId, x.DepartmentId });
+                    table.ForeignKey(
+                        name: "FK_DoctorDepartments_Departments_DepartmentId",
+                        column: x => x.DepartmentId,
+                        principalTable: "Departments",
+                        principalColumn: "DepartmentId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_DoctorDepartments_Doctors_DoctorId",
+                        column: x => x.DoctorId,
+                        principalTable: "Doctors",
+                        principalColumn: "DoctorId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -254,15 +308,34 @@ namespace ClinicManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "Departments",
+                columns: new[] { "DepartmentId", "Code", "CreatedAt", "Description", "Id", "IsActive", "Name", "UpdatedAt" },
+                values: new object[,]
+                {
+                    { 1, "CARD", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6937), "Khoa Tim mạch", 0, true, "Cardiology", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6939) },
+                    { 2, "DERM", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6942), "Khoa Da liễu", 0, true, "Dermatology", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6942) },
+                    { 3, "NEUR", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6944), "Khoa Thần kinh", 0, true, "Neurology", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6944) },
+                    { 4, "PED", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6945), "Khoa Nhi", 0, true, "Pediatrics", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6946) },
+                    { 5, "ORTH", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6947), "Khoa Chấn thương chỉnh hình", 0, true, "Orthopedics", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6947) }
+                });
+
+            migrationBuilder.InsertData(
                 table: "Roles",
                 columns: new[] { "RoleId", "CreatedAt", "Id", "IsActive", "Name", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 9, 16, 7, 14, 34, 828, DateTimeKind.Utc).AddTicks(693), 0, true, "Admin", new DateTime(2025, 9, 16, 7, 14, 34, 828, DateTimeKind.Utc).AddTicks(696) },
-                    { 2, new DateTime(2025, 9, 16, 7, 14, 34, 828, DateTimeKind.Utc).AddTicks(699), 0, true, "Staff", new DateTime(2025, 9, 16, 7, 14, 34, 828, DateTimeKind.Utc).AddTicks(700) },
-                    { 3, new DateTime(2025, 9, 16, 7, 14, 34, 828, DateTimeKind.Utc).AddTicks(701), 0, true, "Doctor", new DateTime(2025, 9, 16, 7, 14, 34, 828, DateTimeKind.Utc).AddTicks(701) },
-                    { 4, new DateTime(2025, 9, 16, 7, 14, 34, 828, DateTimeKind.Utc).AddTicks(702), 0, true, "Patient", new DateTime(2025, 9, 16, 7, 14, 34, 828, DateTimeKind.Utc).AddTicks(703) }
+                    { 1, new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4289), 0, true, "Admin", new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4291) },
+                    { 2, new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4293), 0, true, "Staff", new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4293) },
+                    { 3, new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4295), 0, true, "Doctor", new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4295) },
+                    { 4, new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4296), 0, true, "Patient", new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4296) },
+                    { 5, new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4297), 0, true, "Staff_Doctor", new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4297) },
+                    { 6, new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4298), 0, true, "Staff_Patient", new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4298) }
                 });
+
+            migrationBuilder.InsertData(
+                table: "Accounts",
+                columns: new[] { "AccountId", "CreatedAt", "DoctorId", "Email", "Id", "IsActive", "LastLoginAt", "PasswordHash", "PatientId", "RefreshToken", "RefreshTokenExpiry", "RoleId", "StaffId", "UpdatedAt" },
+                values: new object[] { 1, new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(7011), null, "admin@gmail.com", 0, true, null, "$2a$11$FSviN3EHy9QUYTX.eQcEP.Rr1Ihi5PpJGlnvYfJtbsi3WYQ9Ifgly", null, null, null, 1, null, new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(7012) });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Accounts_DoctorId",
@@ -321,6 +394,24 @@ namespace ClinicManagement.Infrastructure.Migrations
                 column: "ScheduleId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Departments_Code",
+                table: "Departments",
+                column: "Code",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DocDept_Department",
+                table: "DoctorDepartments",
+                column: "DepartmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "UX_DoctorDepartments_Primary",
+                table: "DoctorDepartments",
+                column: "DoctorId",
+                unique: true,
+                filter: "[IsPrimary] = 1");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Doctors_Email",
                 table: "Doctors",
                 column: "Email",
@@ -335,6 +426,11 @@ namespace ClinicManagement.Infrastructure.Migrations
                 name: "IX_Schedule_DoctorTime",
                 table: "DoctorSchedules",
                 columns: new[] { "DoctorId", "StartTime" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Exams_DepartmentId",
+                table: "Exams",
+                column: "DepartmentId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Patients_Email",
@@ -362,6 +458,9 @@ namespace ClinicManagement.Infrastructure.Migrations
                 name: "Appointments");
 
             migrationBuilder.DropTable(
+                name: "DoctorDepartments");
+
+            migrationBuilder.DropTable(
                 name: "Accounts");
 
             migrationBuilder.DropTable(
@@ -381,6 +480,9 @@ namespace ClinicManagement.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Staffs");
+
+            migrationBuilder.DropTable(
+                name: "Departments");
         }
     }
 }

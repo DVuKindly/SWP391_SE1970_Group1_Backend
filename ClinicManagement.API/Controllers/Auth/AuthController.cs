@@ -2,8 +2,9 @@
 using ClinicManagement.Application.Interfaces.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
-namespace ClinicManagement.API.Controllers
+namespace ClinicManagement.API.Controllers.Auth
 {
     [ApiController]
     [Route("api/[controller]")]
@@ -16,7 +17,7 @@ namespace ClinicManagement.API.Controllers
             _authService = authService;
         }
 
-        // POST: api/auth/login
+        [AllowAnonymous]
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken ct)
         {
@@ -27,55 +28,59 @@ namespace ClinicManagement.API.Controllers
             return Ok(result);
         }
 
-        // POST: api/auth/refresh
+        [Authorize]
         [HttpPost("refresh")]
         public async Task<IActionResult> Refresh([FromBody] RefreshRequest request, CancellationToken ct)
         {
-            var result = await _authService.RefreshAsync(request, ct);
+            var result = await _authService.RefreshAsync(User, request, ct);
             if (result == null)
                 return Unauthorized(new { message = "Invalid refresh token" });
 
             return Ok(result);
         }
 
-        // POST: api/auth/logout
+        [Authorize]
         [HttpPost("logout")]
         public async Task<IActionResult> Logout([FromBody] RefreshRequest request, CancellationToken ct)
         {
-            var result = await _authService.LogoutAsync(request.AccountId, request.RefreshToken, ct);
+            var result = await _authService.LogoutAsync(User, request.RefreshToken, ct);
             if (!result)
                 return BadRequest(new { message = "Logout failed" });
 
             return Ok(new { message = "Logged out successfully" });
         }
 
-        // POST: api/auth/change-password
+        [Authorize]
         [HttpPost("change-password")]
         public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request, CancellationToken ct)
         {
-            var result = await _authService.ChangePasswordAsync(request, ct);
+            var result = await _authService.ChangePasswordAsync(User, request, ct);
             if (!result)
                 return BadRequest(new { message = "Change password failed" });
 
             return Ok(new { message = "Password changed successfully" });
         }
 
-        [HttpPost("register")]
         [AllowAnonymous]
+        [HttpPost("register")]
         public async Task<IActionResult> Register([FromBody] RegisterPatientRequest req, CancellationToken ct)
         {
             var res = await _authService.RegisterPatientAsync(req, ct);
-            if (res is null) return BadRequest(new { message = "Email already exists or role missing." });
-            return Ok(res); // trả luôn token
+            if (res is null)
+                return BadRequest(new { message = "Email already exists or role missing." });
+
+            return Ok(res);
         }
 
-        // Admin/Staff tạo account (không trả token)
-        [HttpPost("admin/create-account")]
-        [Authorize(Roles = "Admin,Staff")]
-        public async Task<IActionResult> AdminCreateAccount([FromBody] AdminCreateAccountRequest req, CancellationToken ct)
-        {
-            var ok = await _authService.AdminCreateAccountAsync(req, ct);
-            return ok ? Ok(new { message = "Account created." }) : BadRequest(new { message = "Create failed." });
-        }
+        //[Authorize(Roles = "Admin,Staff")]
+        //[HttpPost("admin/create-account")]
+        //public async Task<IActionResult> AdminCreateAccount([FromBody] AdminCreateAccountRequest req, CancellationToken ct)
+        //{
+        //    var ok = await _authService.AdminCreateAccountAsync(req, ct);
+        //    if (!ok)
+        //        return BadRequest(new { message = "Create failed." });
+
+        //    return Ok(new { message = "Account created." });
+        //}
     }
 }

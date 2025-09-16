@@ -27,12 +27,12 @@ namespace ClinicManagement.Domain.Entity
         public string? Symptoms { get; set; }
         public string? Diagnosis { get; set; }
 
-        // pending/approved/rejected/cancelled/completed
         public string Status { get; set; } = "pending";
 
         public int? ApprovedByDoctorId { get; set; }
         public Doctor? ApprovedByDoctor { get; set; }
         public int? CancelledByAccountId { get; set; }
         public Account? CancelledByAccount { get; set; }
+
     }
 }

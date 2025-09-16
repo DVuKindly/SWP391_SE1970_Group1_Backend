@@ -21,5 +21,8 @@ namespace ClinicManagement.Domain.Entity
 
         public ICollection<DoctorSchedule> Schedules { get; set; } = new List<DoctorSchedule>();
         public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
+     
+        public ICollection<DoctorDepartment> DoctorDepartments { get; set; } = new List<DoctorDepartment>();
+
     }
 }

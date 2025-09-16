@@ -20,6 +20,9 @@ public class AppDbContext : DbContext
     public DbSet<Exam> Exams => Set<Exam>();
     public DbSet<DoctorSchedule> DoctorSchedules => Set<DoctorSchedule>();
     public DbSet<Appointment> Appointments => Set<Appointment>();
+    public DbSet<Department> Departments => Set<Department>();
+    public DbSet<DoctorDepartment> DoctorDepartments => Set<DoctorDepartment>();
+
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -34,10 +37,12 @@ public class AppDbContext : DbContext
             e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.HasData(
-                new Role { RoleId = 1, Name = "Admin", IsActive = true },
-                new Role { RoleId = 2, Name = "Staff", IsActive = true },
-                new Role { RoleId = 3, Name = "Doctor", IsActive = true },
-                new Role { RoleId = 4, Name = "Patient", IsActive = true }
+                 new Role { RoleId = 1, Name = "Admin", IsActive = true },
+    new Role { RoleId = 2, Name = "Staff", IsActive = true },        
+    new Role { RoleId = 3, Name = "Doctor", IsActive = true },
+    new Role { RoleId = 4, Name = "Patient", IsActive = true },
+    new Role { RoleId = 5, Name = "Staff_Doctor", IsActive = true },  
+    new Role { RoleId = 6, Name = "Staff_Patient", IsActive = true }   
             );
         });
 
@@ -122,6 +127,76 @@ public class AppDbContext : DbContext
             e.HasCheckConstraint("CK_Sched_Time", "EndTime > StartTime");
             e.HasIndex(x => new { x.DoctorId, x.StartTime }).HasDatabaseName("IX_Schedule_DoctorTime");
         });
+        // ===== Department
+        b.Entity<Department>(e =>
+        {
+            e.HasKey(x => x.DepartmentId);
+            e.Property(x => x.Code).HasMaxLength(50).IsRequired();
+            e.Property(x => x.Name).HasMaxLength(200).IsRequired();
+            e.Property(x => x.Description).HasMaxLength(500);
+            e.HasIndex(x => x.Code).IsUnique();
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+        });
+
+        // ===== DoctorDepartment (N-N giữa Doctor và Department)
+        b.Entity<DoctorDepartment>(e =>
+        {
+            e.HasKey(x => new { x.DoctorId, x.DepartmentId });
+            e.Property(x => x.IsPrimary).HasDefaultValue(false);
+            e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+
+            e.HasOne(x => x.Doctor)
+             .WithMany(d => d.DoctorDepartments)
+             .HasForeignKey(x => x.DoctorId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.Department)
+             .WithMany(d => d.DoctorDepartments)
+             .HasForeignKey(x => x.DepartmentId)
+             .OnDelete(DeleteBehavior.Cascade);
+
+            // Mỗi bác sĩ chỉ có 1 khoa chính
+            e.HasIndex(x => x.DoctorId)
+             .IsUnique()
+             .HasFilter("[IsPrimary] = 1")
+             .HasDatabaseName("UX_DoctorDepartments_Primary");
+
+            e.HasIndex(x => x.DepartmentId).HasDatabaseName("IX_DocDept_Department");
+        });
+
+        // ===== Exam (map về Department)
+        b.Entity<Exam>(e =>
+        {
+            // phần bạn có sẵn...
+            e.HasOne(x => x.Department)
+             .WithMany(d => d.Exams)
+             .HasForeignKey(x => x.DepartmentId)
+             .OnDelete(DeleteBehavior.NoAction);
+        });
+        // ===== Seed Department (chuyên khoa mẫu)
+        b.Entity<Department>().HasData(
+            new Department { DepartmentId = 1, Code = "CARD", Name = "Cardiology", Description = "Khoa Tim mạch", IsActive = true },
+            new Department { DepartmentId = 2, Code = "DERM", Name = "Dermatology", Description = "Khoa Da liễu", IsActive = true },
+            new Department { DepartmentId = 3, Code = "NEUR", Name = "Neurology", Description = "Khoa Thần kinh", IsActive = true },
+            new Department { DepartmentId = 4, Code = "PED", Name = "Pediatrics", Description = "Khoa Nhi", IsActive = true },
+            new Department { DepartmentId = 5, Code = "ORTH", Name = "Orthopedics", Description = "Khoa Chấn thương chỉnh hình", IsActive = true }
+        );
+        // ===== Seed Admin account
+        b.Entity<Account>().HasData(
+            new Account
+            {
+                AccountId = 1, 
+                Email = "admin@gmail.com",
+                PasswordHash = "$2a$11$FSviN3EHy9QUYTX.eQcEP.Rr1Ihi5PpJGlnvYfJtbsi3WYQ9Ifgly", 
+                RoleId = 1, 
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }
+        );
+
 
         // ===== Appointment
         b.Entity<Appointment>(e =>

@@ -6,9 +6,9 @@ using System.Threading.Tasks;
 
 namespace ClinicManagement.Application.DTOS.Request.Auth
 {
-    public class RefreshRequest
+    public class CreatePatientMinimalRequest
     {
-       
-        public string RefreshToken { get; set; } = default!;
+        public string Email { get; set; } = default!;
+        public string Password { get; set; } = default!;
     }
 }

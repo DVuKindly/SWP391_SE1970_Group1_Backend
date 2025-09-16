@@ -12,6 +12,10 @@ namespace ClinicManagement.Domain.Entity
         public int ExamId { get; set; }
         public string Examination { get; set; } = default!;
         public int? ExaminationType { get; set; }
+        public int? DepartmentId { get; set; }
+        public Department? Department { get; set; }
+        public bool IsActive { get; set; } = true;
+
         public decimal? Price { get; set; }
     }
 }
