@@ -1,0 +1,15 @@
+# Visual Studio
+.vs/
+*.vsidx
+*.vscode/
+*.user
+*.suo
+
+# Build outputs
+bin/
+obj/
+Debug/
+Release/
+
+# Others
+*.log
