@@ -12,6 +12,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
+using ClinicManagement.Application.DTOS.Common;
 
 namespace ClinicManagement.Infrastructure.Services.Auth
 {
@@ -29,14 +30,16 @@ namespace ClinicManagement.Infrastructure.Services.Auth
 
         public async Task<AuthResponse?> LoginAsync(LoginRequest req, CancellationToken ct = default)
         {
+            var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
             var acc = await _ctx.Accounts
                 .Include(a => a.Role)
-                .FirstOrDefaultAsync(a => a.Email == req.Email && a.IsActive, ct);
+                .FirstOrDefaultAsync(a => a.Email == email && a.IsActive, ct);
 
             if (acc is null) return null;
             if (!BCrypt.Net.BCrypt.Verify(req.Password, acc.PasswordHash)) return null;
 
-            var tokens = GenerateTokens(acc);
+            var tokens = GenerateTokens(acc); // kiểu TokenResult, không nullable
+
             acc.RefreshToken = tokens.RefreshToken;
             acc.RefreshTokenExpiry = tokens.RefreshExpiry;
             acc.LastLoginAt = DateTime.UtcNow;
@@ -52,6 +55,7 @@ namespace ClinicManagement.Infrastructure.Services.Auth
                 AccountId = acc.AccountId
             };
         }
+
 
         public async Task<AuthResponse?> RefreshAsync(
      ClaimsPrincipal user,
@@ -159,23 +163,26 @@ namespace ClinicManagement.Infrastructure.Services.Auth
 
 
 
-        public async Task<AuthResponse?> RegisterPatientAsync(RegisterPatientRequest req, CancellationToken ct = default)
+        public async Task<ServiceResult<AuthResponse>> RegisterPatientAsync(RegisterPatientRequest req, CancellationToken ct = default)
         {
-            // Email đã tồn tại?
-            var existed = await _ctx.Accounts.AnyAsync(a => a.Email == req.Email, ct);
-            if (existed) return null;
+            var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
+
+            // Email tồn tại?
+            var existed = await _ctx.Accounts.AnyAsync(a => a.Email == email, ct);
+            if (existed) return ServiceResult<AuthResponse>.Fail("Email already registered.");
 
             // Lấy role Patient
             var rolePatient = await _ctx.Roles.FirstOrDefaultAsync(r => r.Name == "Patient", ct);
-            if (rolePatient is null) throw new InvalidOperationException("Role 'Patient' not found. Seed roles first.");
+            if (rolePatient is null)
+                return ServiceResult<AuthResponse>.Fail("Role 'Patient' not found. Please seed roles first.");
 
             // Tạo Patient
             var patient = new Patient
             {
-                Name = req.Name,
-                Email = req.Email,
-                Phone = req.Phone,
-                 IsActive = true,
+                Name = req.Name.Trim(),
+                Email = email,
+                Phone = req.Phone.Trim(),
+                IsActive = true,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -185,7 +192,7 @@ namespace ClinicManagement.Infrastructure.Services.Auth
             // Tạo Account
             var acc = new Account
             {
-                Email = req.Email,
+                Email = email,
                 PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
                 RoleId = rolePatient.RoleId,
                 PatientId = patient.PatientId,
@@ -196,14 +203,18 @@ namespace ClinicManagement.Infrastructure.Services.Auth
             _ctx.Accounts.Add(acc);
             await _ctx.SaveChangesAsync(ct);
 
-          
-            acc = await _ctx.Accounts.Include(a => a.Role).FirstAsync(a => a.AccountId == acc.AccountId, ct);
+            // Load lại để lấy Role
+            acc = await _ctx.Accounts.Include(a => a.Role)
+                .FirstAsync(a => a.AccountId == acc.AccountId, ct);
+
+            // Sinh token
             var tokens = GenerateTokens(acc);
+
             acc.RefreshToken = tokens.RefreshToken;
             acc.RefreshTokenExpiry = tokens.RefreshExpiry;
             await _ctx.SaveChangesAsync(ct);
 
-            return new AuthResponse
+            var response = new AuthResponse
             {
                 AccessToken = tokens.AccessToken,
                 RefreshToken = tokens.RefreshToken,
@@ -211,7 +222,11 @@ namespace ClinicManagement.Infrastructure.Services.Auth
                 Role = acc.Role.Name,
                 AccountId = acc.AccountId
             };
+
+            return ServiceResult<AuthResponse>.Ok(response, "Patient registered successfully.");
         }
+
+
 
         public async Task<bool> AdminCreateAccountAsync(AdminCreateAccountRequest req, CancellationToken ct = default)
         {
