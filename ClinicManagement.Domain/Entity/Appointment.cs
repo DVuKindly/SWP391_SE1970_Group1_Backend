@@ -32,7 +32,7 @@ namespace ClinicManagement.Domain.Entity
         public int? ApprovedByDoctorId { get; set; }
         public Doctor? ApprovedByDoctor { get; set; }
         public int? CancelledByAccountId { get; set; }
-        public Account? CancelledByAccount { get; set; }
+
 
     }
 }

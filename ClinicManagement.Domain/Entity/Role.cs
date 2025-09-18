@@ -10,8 +10,12 @@ namespace ClinicManagement.Domain.Entity
 {
     public class Role : BaseEntity
     {
-        public int RoleId { get; set; }              
+        public int RoleId { get; set; }
         public string Name { get; set; } = default!;
-        public ICollection<Account> Accounts { get; set; } = new List<Account>();
+
+     
+        public ICollection<Doctor> Doctors { get; set; } = new List<Doctor>();
+        public ICollection<Patient> Patients { get; set; } = new List<Patient>();
+        public ICollection<Staff> Staffs { get; set; } = new List<Staff>();
     }
 }

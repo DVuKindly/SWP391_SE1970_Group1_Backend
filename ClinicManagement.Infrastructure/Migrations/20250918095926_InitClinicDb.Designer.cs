@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ClinicManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20250916134726_InitClinicD2b")]
-    partial class InitClinicD2b
+    [Migration("20250918095926_InitClinicDb")]
+    partial class InitClinicDb
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -25,23 +25,23 @@ namespace ClinicManagement.Infrastructure.Migrations
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
-            modelBuilder.Entity("ClinicManagement.Domain.Entity.Account", b =>
+            modelBuilder.Entity("ClinicManagement.Domain.Entity.Admin", b =>
                 {
-                    b.Property<int>("AccountId")
+                    b.Property<int>("AdminId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AccountId"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AdminId"));
 
                     b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<int?>("DoctorId")
-                        .HasColumnType("int");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("FullName")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
@@ -50,65 +50,55 @@ namespace ClinicManagement.Infrastructure.Migrations
                         .HasColumnType("int");
 
                     b.Property<bool>("IsActive")
-                        .HasColumnType("bit");
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
 
                     b.Property<DateTime?>("LastLoginAt")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("PasswordHash")
-                        .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<int?>("PatientId")
-                        .HasColumnType("int");
+                    b.Property<string>("Phone")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("RefreshToken")
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime?>("RefreshTokenExpiry")
                         .HasColumnType("datetime2");
 
-                    b.Property<int>("RoleId")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("StaffId")
+                    b.Property<int?>("RoleId")
                         .HasColumnType("int");
 
                     b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
+                        .HasColumnType("datetime2");
 
-                    b.HasKey("AccountId");
-
-                    b.HasIndex("DoctorId");
+                    b.HasKey("AdminId");
 
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.HasIndex("PatientId");
-
                     b.HasIndex("RoleId");
 
-                    b.HasIndex("StaffId");
-
-                    b.ToTable("Accounts", t =>
-                        {
-                            t.HasCheckConstraint("CK_Accounts_OneLink", "((CASE WHEN DoctorId IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN PatientId IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN StaffId IS NOT NULL THEN 1 ELSE 0 END)) <= 1");
-                        });
+                    b.ToTable("Admins");
 
                     b.HasData(
                         new
                         {
-                            AccountId = 1,
-                            CreatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(7011),
+                            AdminId = 1,
+                            CreatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 156, DateTimeKind.Utc).AddTicks(2335),
                             Email = "admin@gmail.com",
+                            FullName = "System Administrator",
                             Id = 0,
                             IsActive = true,
-                            PasswordHash = "$2a$11$FSviN3EHy9QUYTX.eQcEP.Rr1Ihi5PpJGlnvYfJtbsi3WYQ9Ifgly",
-                            RoleId = 1,
-                            UpdatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(7012)
+                            PasswordHash = "$2a$11$ZNwXzHwf1rJUwxCZ27ygm.QkEItTRnOA.Rw3zuIOOMSp3tM.zhI.q",
+                            Phone = "19001898",
+                            UpdatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 156, DateTimeKind.Utc).AddTicks(2336)
                         });
                 });
 
@@ -173,8 +163,6 @@ namespace ClinicManagement.Infrastructure.Migrations
                     b.HasKey("AppointmentId");
 
                     b.HasIndex("ApprovedByDoctorId");
-
-                    b.HasIndex("CancelledByAccountId");
 
                     b.HasIndex("ExamId");
 
@@ -242,56 +230,56 @@ namespace ClinicManagement.Infrastructure.Migrations
                         {
                             DepartmentId = 1,
                             Code = "CARD",
-                            CreatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6937),
+                            CreatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8917),
                             Description = "Khoa Tim mạch",
                             Id = 0,
                             IsActive = true,
                             Name = "Cardiology",
-                            UpdatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6939)
+                            UpdatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8918)
                         },
                         new
                         {
                             DepartmentId = 2,
                             Code = "DERM",
-                            CreatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6942),
+                            CreatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8922),
                             Description = "Khoa Da liễu",
                             Id = 0,
                             IsActive = true,
                             Name = "Dermatology",
-                            UpdatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6942)
+                            UpdatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8923)
                         },
                         new
                         {
                             DepartmentId = 3,
                             Code = "NEUR",
-                            CreatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6944),
+                            CreatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8924),
                             Description = "Khoa Thần kinh",
                             Id = 0,
                             IsActive = true,
                             Name = "Neurology",
-                            UpdatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6944)
+                            UpdatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8925)
                         },
                         new
                         {
                             DepartmentId = 4,
                             Code = "PED",
-                            CreatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6945),
+                            CreatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8958),
                             Description = "Khoa Nhi",
                             Id = 0,
                             IsActive = true,
                             Name = "Pediatrics",
-                            UpdatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6946)
+                            UpdatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8958)
                         },
                         new
                         {
                             DepartmentId = 5,
                             Code = "ORTH",
-                            CreatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6947),
+                            CreatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8960),
                             Description = "Khoa Chấn thương chỉnh hình",
                             Id = 0,
                             IsActive = true,
                             Name = "Orthopedics",
-                            UpdatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6947)
+                            UpdatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8960)
                         });
                 });
 
@@ -333,15 +321,32 @@ namespace ClinicManagement.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("RefreshToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("RefreshTokenExpiry")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("RoleId")
+                        .HasColumnType("int");
 
                     b.Property<string>("Specialization")
                         .HasMaxLength(200)
@@ -356,6 +361,8 @@ namespace ClinicManagement.Infrastructure.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("RoleId");
 
                     b.ToTable("Doctors");
                 });
@@ -533,6 +540,9 @@ namespace ClinicManagement.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -541,10 +551,24 @@ namespace ClinicManagement.Infrastructure.Migrations
                     b.Property<string>("Note")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("Phone")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("RefreshToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("RefreshTokenExpiry")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("RoleId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
@@ -555,6 +579,8 @@ namespace ClinicManagement.Infrastructure.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("RoleId");
 
                     b.ToTable("Patients");
                 });
@@ -599,56 +625,56 @@ namespace ClinicManagement.Infrastructure.Migrations
                         new
                         {
                             RoleId = 1,
-                            CreatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4289),
+                            CreatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1824),
                             Id = 0,
                             IsActive = true,
                             Name = "Admin",
-                            UpdatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4291)
+                            UpdatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1826)
                         },
                         new
                         {
                             RoleId = 2,
-                            CreatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4293),
+                            CreatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1830),
                             Id = 0,
                             IsActive = true,
                             Name = "Staff",
-                            UpdatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4293)
+                            UpdatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1830)
                         },
                         new
                         {
                             RoleId = 3,
-                            CreatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4295),
+                            CreatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1832),
                             Id = 0,
                             IsActive = true,
                             Name = "Doctor",
-                            UpdatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4295)
+                            UpdatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1832)
                         },
                         new
                         {
                             RoleId = 4,
-                            CreatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4296),
+                            CreatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1833),
                             Id = 0,
                             IsActive = true,
                             Name = "Patient",
-                            UpdatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4296)
+                            UpdatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1833)
                         },
                         new
                         {
                             RoleId = 5,
-                            CreatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4297),
+                            CreatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1835),
                             Id = 0,
                             IsActive = true,
                             Name = "Staff_Doctor",
-                            UpdatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4297)
+                            UpdatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1835)
                         },
                         new
                         {
                             RoleId = 6,
-                            CreatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4298),
+                            CreatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1836),
                             Id = 0,
                             IsActive = true,
                             Name = "Staff_Patient",
-                            UpdatedAt = new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4298)
+                            UpdatedAt = new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1836)
                         });
                 });
 
@@ -676,14 +702,34 @@ namespace ClinicManagement.Infrastructure.Migrations
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
+                    b.Property<bool>("IsAdmin")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastLoginAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
+                    b.Property<string>("PasswordHash")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("Phone")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("RefreshToken")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("RefreshTokenExpiry")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int?>("RoleId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
@@ -695,39 +741,18 @@ namespace ClinicManagement.Infrastructure.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
+                    b.HasIndex("RoleId");
+
                     b.ToTable("Staffs");
                 });
 
-            modelBuilder.Entity("ClinicManagement.Domain.Entity.Account", b =>
+            modelBuilder.Entity("ClinicManagement.Domain.Entity.Admin", b =>
                 {
-                    b.HasOne("ClinicManagement.Domain.Entity.Doctor", "Doctor")
-                        .WithMany()
-                        .HasForeignKey("DoctorId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("ClinicManagement.Domain.Entity.Patient", "Patient")
-                        .WithMany()
-                        .HasForeignKey("PatientId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
                     b.HasOne("ClinicManagement.Domain.Entity.Role", "Role")
-                        .WithMany("Accounts")
-                        .HasForeignKey("RoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("ClinicManagement.Domain.Entity.Staff", "Staff")
                         .WithMany()
-                        .HasForeignKey("StaffId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.Navigation("Doctor");
-
-                    b.Navigation("Patient");
+                        .HasForeignKey("RoleId");
 
                     b.Navigation("Role");
-
-                    b.Navigation("Staff");
                 });
 
             modelBuilder.Entity("ClinicManagement.Domain.Entity.Appointment", b =>
@@ -735,11 +760,6 @@ namespace ClinicManagement.Infrastructure.Migrations
                     b.HasOne("ClinicManagement.Domain.Entity.Doctor", "ApprovedByDoctor")
                         .WithMany()
                         .HasForeignKey("ApprovedByDoctorId")
-                        .OnDelete(DeleteBehavior.NoAction);
-
-                    b.HasOne("ClinicManagement.Domain.Entity.Account", "CancelledByAccount")
-                        .WithMany()
-                        .HasForeignKey("CancelledByAccountId")
                         .OnDelete(DeleteBehavior.NoAction);
 
                     b.HasOne("ClinicManagement.Domain.Entity.Doctor", "Doctor")
@@ -765,8 +785,6 @@ namespace ClinicManagement.Infrastructure.Migrations
 
                     b.Navigation("ApprovedByDoctor");
 
-                    b.Navigation("CancelledByAccount");
-
                     b.Navigation("Doctor");
 
                     b.Navigation("Exam");
@@ -774,6 +792,16 @@ namespace ClinicManagement.Infrastructure.Migrations
                     b.Navigation("Patient");
 
                     b.Navigation("Schedule");
+                });
+
+            modelBuilder.Entity("ClinicManagement.Domain.Entity.Doctor", b =>
+                {
+                    b.HasOne("ClinicManagement.Domain.Entity.Role", "Role")
+                        .WithMany("Doctors")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Role");
                 });
 
             modelBuilder.Entity("ClinicManagement.Domain.Entity.DoctorDepartment", b =>
@@ -823,6 +851,26 @@ namespace ClinicManagement.Infrastructure.Migrations
                     b.Navigation("Department");
                 });
 
+            modelBuilder.Entity("ClinicManagement.Domain.Entity.Patient", b =>
+                {
+                    b.HasOne("ClinicManagement.Domain.Entity.Role", "Role")
+                        .WithMany("Patients")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Role");
+                });
+
+            modelBuilder.Entity("ClinicManagement.Domain.Entity.Staff", b =>
+                {
+                    b.HasOne("ClinicManagement.Domain.Entity.Role", "Role")
+                        .WithMany("Staffs")
+                        .HasForeignKey("RoleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Role");
+                });
+
             modelBuilder.Entity("ClinicManagement.Domain.Entity.Department", b =>
                 {
                     b.Navigation("DoctorDepartments");
@@ -846,7 +894,11 @@ namespace ClinicManagement.Infrastructure.Migrations
 
             modelBuilder.Entity("ClinicManagement.Domain.Entity.Role", b =>
                 {
-                    b.Navigation("Accounts");
+                    b.Navigation("Doctors");
+
+                    b.Navigation("Patients");
+
+                    b.Navigation("Staffs");
                 });
 #pragma warning restore 612, 618
         }

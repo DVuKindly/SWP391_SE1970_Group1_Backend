@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ClinicManagement.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitClinicD2b : Migration
+    public partial class InitClinicDb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -33,53 +33,6 @@ namespace ClinicManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Doctors",
-                columns: table => new
-                {
-                    DoctorId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Phone = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Address = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
-                    Gender = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Specialization = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
-                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Image = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
-                    Id = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Doctors", x => x.DoctorId);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Patients",
-                columns: table => new
-                {
-                    PatientId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Phone = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Address = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
-                    Gender = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    DOB = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Note = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Id = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Patients", x => x.PatientId);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "Roles",
                 columns: table => new
                 {
@@ -94,25 +47,6 @@ namespace ClinicManagement.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Roles", x => x.RoleId);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Staffs",
-                columns: table => new
-                {
-                    StaffId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Email = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    Phone = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    Id = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Staffs", x => x.StaffId);
                 });
 
             migrationBuilder.CreateTable(
@@ -138,6 +72,135 @@ namespace ClinicManagement.Infrastructure.Migrations
                         column: x => x.DepartmentId,
                         principalTable: "Departments",
                         principalColumn: "DepartmentId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Admins",
+                columns: table => new
+                {
+                    AdminId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Email = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    RefreshToken = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    RefreshTokenExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastLoginAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
+                    RoleId = table.Column<int>(type: "int", nullable: true),
+                    FullName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Phone = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    Id = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Admins", x => x.AdminId);
+                    table.ForeignKey(
+                        name: "FK_Admins_Roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "RoleId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Doctors",
+                columns: table => new
+                {
+                    DoctorId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Email = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    RefreshToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RefreshTokenExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastLoginAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    RoleId = table.Column<int>(type: "int", nullable: true),
+                    Phone = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Address = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
+                    Gender = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Specialization = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Image = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    Id = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Doctors", x => x.DoctorId);
+                    table.ForeignKey(
+                        name: "FK_Doctors_Roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "RoleId",
+                        onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Patients",
+                columns: table => new
+                {
+                    PatientId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Email = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    RefreshToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RefreshTokenExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastLoginAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    RoleId = table.Column<int>(type: "int", nullable: true),
+                    Phone = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Address = table.Column<string>(type: "nvarchar(300)", maxLength: 300, nullable: true),
+                    Gender = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    DOB = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    Note = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Id = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Patients", x => x.PatientId);
+                    table.ForeignKey(
+                        name: "FK_Patients_Roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "RoleId",
+                        onDelete: ReferentialAction.SetNull);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "Staffs",
+                columns: table => new
+                {
+                    StaffId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Email = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
+                    RefreshToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    RefreshTokenExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastLoginAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    RoleId = table.Column<int>(type: "int", nullable: true),
+                    Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
+                    Phone = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    IsAdmin = table.Column<bool>(type: "bit", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
+                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Staffs", x => x.StaffId);
+                    table.ForeignKey(
+                        name: "FK_Staffs_Roles_RoleId",
+                        column: x => x.RoleId,
+                        principalTable: "Roles",
+                        principalColumn: "RoleId",
+                        onDelete: ReferentialAction.SetNull);
                 });
 
             migrationBuilder.CreateTable(
@@ -167,53 +230,6 @@ namespace ClinicManagement.Infrastructure.Migrations
                         principalTable: "Doctors",
                         principalColumn: "DoctorId",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "Accounts",
-                columns: table => new
-                {
-                    AccountId = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Email = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
-                    PasswordHash = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
-                    RoleId = table.Column<int>(type: "int", nullable: false),
-                    DoctorId = table.Column<int>(type: "int", nullable: true),
-                    PatientId = table.Column<int>(type: "int", nullable: true),
-                    StaffId = table.Column<int>(type: "int", nullable: true),
-                    LastLoginAt = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    RefreshToken = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    RefreshTokenExpiry = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Id = table.Column<int>(type: "int", nullable: false),
-                    IsActive = table.Column<bool>(type: "bit", nullable: false),
-                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
-                    UpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_Accounts", x => x.AccountId);
-                    table.CheckConstraint("CK_Accounts_OneLink", "((CASE WHEN DoctorId IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN PatientId IS NOT NULL THEN 1 ELSE 0 END) + (CASE WHEN StaffId IS NOT NULL THEN 1 ELSE 0 END)) <= 1");
-                    table.ForeignKey(
-                        name: "FK_Accounts_Doctors_DoctorId",
-                        column: x => x.DoctorId,
-                        principalTable: "Doctors",
-                        principalColumn: "DoctorId");
-                    table.ForeignKey(
-                        name: "FK_Accounts_Patients_PatientId",
-                        column: x => x.PatientId,
-                        principalTable: "Patients",
-                        principalColumn: "PatientId");
-                    table.ForeignKey(
-                        name: "FK_Accounts_Roles_RoleId",
-                        column: x => x.RoleId,
-                        principalTable: "Roles",
-                        principalColumn: "RoleId",
-                        onDelete: ReferentialAction.Cascade);
-                    table.ForeignKey(
-                        name: "FK_Accounts_Staffs_StaffId",
-                        column: x => x.StaffId,
-                        principalTable: "Staffs",
-                        principalColumn: "StaffId");
                 });
 
             migrationBuilder.CreateTable(
@@ -275,11 +291,6 @@ namespace ClinicManagement.Infrastructure.Migrations
                     table.PrimaryKey("PK_Appointments", x => x.AppointmentId);
                     table.CheckConstraint("CK_App_Status", "Status in ('pending','approved','rejected','cancelled','completed')");
                     table.ForeignKey(
-                        name: "FK_Appointments_Accounts_CancelledByAccountId",
-                        column: x => x.CancelledByAccountId,
-                        principalTable: "Accounts",
-                        principalColumn: "AccountId");
-                    table.ForeignKey(
                         name: "FK_Appointments_DoctorSchedules_ScheduleId",
                         column: x => x.ScheduleId,
                         principalTable: "DoctorSchedules",
@@ -308,15 +319,20 @@ namespace ClinicManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "Admins",
+                columns: new[] { "AdminId", "CreatedAt", "Email", "FullName", "Id", "IsActive", "LastLoginAt", "PasswordHash", "Phone", "RefreshToken", "RefreshTokenExpiry", "RoleId", "UpdatedAt" },
+                values: new object[] { 1, new DateTime(2025, 9, 18, 9, 59, 26, 156, DateTimeKind.Utc).AddTicks(2335), "admin@gmail.com", "System Administrator", 0, true, null, "$2a$11$ZNwXzHwf1rJUwxCZ27ygm.QkEItTRnOA.Rw3zuIOOMSp3tM.zhI.q", "19001898", null, null, null, new DateTime(2025, 9, 18, 9, 59, 26, 156, DateTimeKind.Utc).AddTicks(2336) });
+
+            migrationBuilder.InsertData(
                 table: "Departments",
                 columns: new[] { "DepartmentId", "Code", "CreatedAt", "Description", "Id", "IsActive", "Name", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, "CARD", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6937), "Khoa Tim mạch", 0, true, "Cardiology", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6939) },
-                    { 2, "DERM", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6942), "Khoa Da liễu", 0, true, "Dermatology", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6942) },
-                    { 3, "NEUR", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6944), "Khoa Thần kinh", 0, true, "Neurology", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6944) },
-                    { 4, "PED", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6945), "Khoa Nhi", 0, true, "Pediatrics", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6946) },
-                    { 5, "ORTH", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6947), "Khoa Chấn thương chỉnh hình", 0, true, "Orthopedics", new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(6947) }
+                    { 1, "CARD", new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8917), "Khoa Tim mạch", 0, true, "Cardiology", new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8918) },
+                    { 2, "DERM", new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8922), "Khoa Da liễu", 0, true, "Dermatology", new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8923) },
+                    { 3, "NEUR", new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8924), "Khoa Thần kinh", 0, true, "Neurology", new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8925) },
+                    { 4, "PED", new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8958), "Khoa Nhi", 0, true, "Pediatrics", new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8958) },
+                    { 5, "ORTH", new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8960), "Khoa Chấn thương chỉnh hình", 0, true, "Orthopedics", new DateTime(2025, 9, 18, 9, 59, 26, 157, DateTimeKind.Utc).AddTicks(8960) }
                 });
 
             migrationBuilder.InsertData(
@@ -324,44 +340,24 @@ namespace ClinicManagement.Infrastructure.Migrations
                 columns: new[] { "RoleId", "CreatedAt", "Id", "IsActive", "Name", "UpdatedAt" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4289), 0, true, "Admin", new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4291) },
-                    { 2, new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4293), 0, true, "Staff", new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4293) },
-                    { 3, new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4295), 0, true, "Doctor", new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4295) },
-                    { 4, new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4296), 0, true, "Patient", new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4296) },
-                    { 5, new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4297), 0, true, "Staff_Doctor", new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4297) },
-                    { 6, new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4298), 0, true, "Staff_Patient", new DateTime(2025, 9, 16, 13, 47, 26, 418, DateTimeKind.Utc).AddTicks(4298) }
+                    { 1, new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1824), 0, true, "Admin", new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1826) },
+                    { 2, new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1830), 0, true, "Staff", new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1830) },
+                    { 3, new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1832), 0, true, "Doctor", new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1832) },
+                    { 4, new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1833), 0, true, "Patient", new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1833) },
+                    { 5, new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1835), 0, true, "Staff_Doctor", new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1835) },
+                    { 6, new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1836), 0, true, "Staff_Patient", new DateTime(2025, 9, 18, 9, 59, 26, 154, DateTimeKind.Utc).AddTicks(1836) }
                 });
 
-            migrationBuilder.InsertData(
-                table: "Accounts",
-                columns: new[] { "AccountId", "CreatedAt", "DoctorId", "Email", "Id", "IsActive", "LastLoginAt", "PasswordHash", "PatientId", "RefreshToken", "RefreshTokenExpiry", "RoleId", "StaffId", "UpdatedAt" },
-                values: new object[] { 1, new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(7011), null, "admin@gmail.com", 0, true, null, "$2a$11$FSviN3EHy9QUYTX.eQcEP.Rr1Ihi5PpJGlnvYfJtbsi3WYQ9Ifgly", null, null, null, 1, null, new DateTime(2025, 9, 16, 13, 47, 26, 422, DateTimeKind.Utc).AddTicks(7012) });
-
             migrationBuilder.CreateIndex(
-                name: "IX_Accounts_DoctorId",
-                table: "Accounts",
-                column: "DoctorId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Accounts_Email",
-                table: "Accounts",
+                name: "IX_Admins_Email",
+                table: "Admins",
                 column: "Email",
                 unique: true);
 
             migrationBuilder.CreateIndex(
-                name: "IX_Accounts_PatientId",
-                table: "Accounts",
-                column: "PatientId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Accounts_RoleId",
-                table: "Accounts",
+                name: "IX_Admins_RoleId",
+                table: "Admins",
                 column: "RoleId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Accounts_StaffId",
-                table: "Accounts",
-                column: "StaffId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_App_Doctor_Date",
@@ -377,11 +373,6 @@ namespace ClinicManagement.Infrastructure.Migrations
                 name: "IX_Appointments_ApprovedByDoctorId",
                 table: "Appointments",
                 column: "ApprovedByDoctorId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Appointments_CancelledByAccountId",
-                table: "Appointments",
-                column: "CancelledByAccountId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_Appointments_ExamId",
@@ -418,6 +409,11 @@ namespace ClinicManagement.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Doctors_RoleId",
+                table: "Doctors",
+                column: "RoleId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_DoctorSchedules_CreatedByStaffId",
                 table: "DoctorSchedules",
                 column: "CreatedByStaffId");
@@ -439,6 +435,11 @@ namespace ClinicManagement.Infrastructure.Migrations
                 unique: true);
 
             migrationBuilder.CreateIndex(
+                name: "IX_Patients_RoleId",
+                table: "Patients",
+                column: "RoleId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Roles_Name",
                 table: "Roles",
                 column: "Name",
@@ -449,19 +450,24 @@ namespace ClinicManagement.Infrastructure.Migrations
                 table: "Staffs",
                 column: "Email",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Staffs_RoleId",
+                table: "Staffs",
+                column: "RoleId");
         }
 
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "Admins");
+
+            migrationBuilder.DropTable(
                 name: "Appointments");
 
             migrationBuilder.DropTable(
                 name: "DoctorDepartments");
-
-            migrationBuilder.DropTable(
-                name: "Accounts");
 
             migrationBuilder.DropTable(
                 name: "DoctorSchedules");
@@ -473,9 +479,6 @@ namespace ClinicManagement.Infrastructure.Migrations
                 name: "Patients");
 
             migrationBuilder.DropTable(
-                name: "Roles");
-
-            migrationBuilder.DropTable(
                 name: "Doctors");
 
             migrationBuilder.DropTable(
@@ -483,6 +486,9 @@ namespace ClinicManagement.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "Departments");
+
+            migrationBuilder.DropTable(
+                name: "Roles");
         }
     }
 }

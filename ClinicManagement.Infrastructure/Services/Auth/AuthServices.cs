@@ -5,18 +5,14 @@ using System.Text;
 using BCrypt.Net;
 using ClinicManagement.Application.DTOS.Request.Auth;
 using ClinicManagement.Application.DTOS.Response.Auth;
-using ClinicManagement.Application.Interfaces.Services.Auth;
-using ClinicManagement.Domain.Entity;                
-using ClinicManagement.Infrastructure.Persistence;   
+using ClinicManagement.Domain.Entity;
+using ClinicManagement.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
-using System.Security.Claims;
-using ClinicManagement.Application.DTOS.Common;
 
 namespace ClinicManagement.Infrastructure.Services.Auth
 {
-
     public class AuthService : IAuthService
     {
         private readonly AppDbContext _ctx;
@@ -28,22 +24,21 @@ namespace ClinicManagement.Infrastructure.Services.Auth
             _cfg = cfg;
         }
 
-        public async Task<AuthResponse?> LoginAsync(LoginRequest req, CancellationToken ct = default)
+        // doctor
+        public async Task<AuthResponse?> LoginDoctorAsync(LoginRequest req, CancellationToken ct = default)
         {
             var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
-            var acc = await _ctx.Accounts
-                .Include(a => a.Role)
-                .FirstOrDefaultAsync(a => a.Email == email && a.IsActive, ct);
+            var doctor = await _ctx.Doctors
+                .FirstOrDefaultAsync(d => d.Email == email && d.IsActive, ct);
+            if (doctor is null) return null;
 
-            if (acc is null) return null;
-            if (!BCrypt.Net.BCrypt.Verify(req.Password, acc.PasswordHash)) return null;
+            if (!BCrypt.Net.BCrypt.Verify(req.Password, doctor.PasswordHash)) return null;
 
-            var tokens = GenerateTokens(acc); // kiểu TokenResult, không nullable
+            var tokens = GenerateTokens(doctor.DoctorId.ToString(), "Doctor");
 
-            acc.RefreshToken = tokens.RefreshToken;
-            acc.RefreshTokenExpiry = tokens.RefreshExpiry;
-            acc.LastLoginAt = DateTime.UtcNow;
-
+            doctor.RefreshToken = tokens.RefreshToken;
+            doctor.RefreshTokenExpiry = tokens.RefreshExpiry;
+            doctor.LastLoginAt = DateTime.UtcNow;
             await _ctx.SaveChangesAsync(ct);
 
             return new AuthResponse
@@ -51,32 +46,26 @@ namespace ClinicManagement.Infrastructure.Services.Auth
                 AccessToken = tokens.AccessToken,
                 RefreshToken = tokens.RefreshToken,
                 ExpiresAt = tokens.AccessExpiry,
-                Role = acc.Role.Name,
-                AccountId = acc.AccountId
+                Role = "Doctor",
+                AccountId = doctor.DoctorId 
             };
         }
 
-
-        public async Task<AuthResponse?> RefreshAsync(
-     ClaimsPrincipal user,
-     RefreshRequest req,
-     CancellationToken ct = default)
+        // patient
+        public async Task<AuthResponse?> LoginPatientAsync(LoginRequest req, CancellationToken ct = default)
         {
-            var accountId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
+            var patient = await _ctx.Patients
+                .FirstOrDefaultAsync(p => p.Email == email && p.IsActive, ct);
+            if (patient is null) return null;
 
+            if (!BCrypt.Net.BCrypt.Verify(req.Password, patient.PasswordHash)) return null;
 
-            var acc = await _ctx.Accounts
-                .Include(a => a.Role)
-                .FirstOrDefaultAsync(a => a.AccountId == accountId && a.IsActive, ct);
+            var tokens = GenerateTokens(patient.PatientId.ToString(), "Patient");
 
-            if (acc is null) return null;
-            if (acc.RefreshToken != req.RefreshToken) return null;
-            if (acc.RefreshTokenExpiry is null || acc.RefreshTokenExpiry <= DateTime.UtcNow) return null;
-
-            var tokens = GenerateTokens(acc);
-            acc.RefreshToken = tokens.RefreshToken;
-            acc.RefreshTokenExpiry = tokens.RefreshExpiry;
-
+            patient.RefreshToken = tokens.RefreshToken;
+            patient.RefreshTokenExpiry = tokens.RefreshExpiry;
+            patient.LastLoginAt = DateTime.UtcNow;
             await _ctx.SaveChangesAsync(ct);
 
             return new AuthResponse
@@ -84,380 +73,101 @@ namespace ClinicManagement.Infrastructure.Services.Auth
                 AccessToken = tokens.AccessToken,
                 RefreshToken = tokens.RefreshToken,
                 ExpiresAt = tokens.AccessExpiry,
-                Role = acc.Role.Name,
-                AccountId = acc.AccountId
+                Role = "Patient",
+                AccountId = patient.PatientId
             };
         }
 
-
-        public async Task<bool> LogoutAsync(
-        ClaimsPrincipal user,
-        string refreshToken,
-        CancellationToken ct = default)
+        // staff
+        public async Task<AuthResponse?> LoginStaffAsync(LoginRequest req, CancellationToken ct = default)
         {
-            var accountId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
+            var staff = await _ctx.Staffs
+                .FirstOrDefaultAsync(s => s.Email == email && s.IsActive, ct);
+            if (staff is null) return null;
 
+            if (!BCrypt.Net.BCrypt.Verify(req.Password, staff.PasswordHash)) return null;
 
-            var acc = await _ctx.Accounts.FirstOrDefaultAsync(a => a.AccountId == accountId, ct);
-            if (acc is null || acc.RefreshToken != refreshToken) return false;
+            var tokens = GenerateTokens(staff.StaffId.ToString(), "Staff");
 
-            acc.RefreshToken = null;
-            acc.RefreshTokenExpiry = null;
+            staff.RefreshToken = tokens.RefreshToken;
+            staff.RefreshTokenExpiry = tokens.RefreshExpiry;
+            staff.LastLoginAt = DateTime.UtcNow;
             await _ctx.SaveChangesAsync(ct);
-            return true;
+
+            return new AuthResponse
+            {
+                AccessToken = tokens.AccessToken,
+                RefreshToken = tokens.RefreshToken,
+                ExpiresAt = tokens.AccessExpiry,
+                Role = "Staff",
+                AccountId = staff.StaffId
+            };
         }
 
-
-        public async Task<bool> ChangePasswordAsync(
-            ClaimsPrincipal user,
-            ChangePasswordRequest req,
-            CancellationToken ct = default)
+        // admin
+        public async Task<AuthResponse?> LoginAdminAsync(LoginRequest req, CancellationToken ct = default)
         {
-            var accountId = int.Parse(user.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+            var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
+            // Admin chính là Staff có cờ IsAdmin
+            var admin = await _ctx.Admins
+                .FirstOrDefaultAsync(s => s.Email == email && s.IsActive, ct);
+            if (admin is null) return null;
 
+            if (!BCrypt.Net.BCrypt.Verify(req.Password, admin.PasswordHash)) return null;
 
-            var acc = await _ctx.Accounts.FirstOrDefaultAsync(a => a.AccountId == accountId && a.IsActive, ct);
-            if (acc is null) return false;
+            var tokens = GenerateTokens(admin.AdminId.ToString(), "Admin");
 
-            if (!BCrypt.Net.BCrypt.Verify(req.CurrentPassword, acc.PasswordHash))
-                return false;
-
-            acc.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
-            acc.UpdatedAt = DateTime.UtcNow;
-            acc.RefreshToken = null;
-            acc.RefreshTokenExpiry = null;
-
+            admin.RefreshToken = tokens.RefreshToken;
+            admin.RefreshTokenExpiry = tokens.RefreshExpiry;
+            admin.LastLoginAt = DateTime.UtcNow;
             await _ctx.SaveChangesAsync(ct);
-            return true;
+
+            return new AuthResponse
+            {
+                AccessToken = tokens.AccessToken,
+                RefreshToken = tokens.RefreshToken,
+                ExpiresAt = tokens.AccessExpiry,
+                Role = "Admin",
+                AccountId = admin.AdminId
+            };
         }
 
-
-
+       
         private (string AccessToken, DateTime AccessExpiry, string RefreshToken, DateTime RefreshExpiry)
-            GenerateTokens(Account acc)
+            GenerateTokens(string userId, string role)
         {
             var issuer = _cfg["Jwt:Issuer"]!;
             var audience = _cfg["Jwt:Audience"]!;
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_cfg["Jwt:Key"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
-            var accessExpiry = DateTime.UtcNow.AddMinutes(int.Parse(_cfg["Jwt:AccessTokenMinutes"]!));
+            var accessExpiry = DateTime.UtcNow.AddMinutes(
+                int.Parse(_cfg["Jwt:AccessTokenMinutes"] ?? "60")
+            );
 
             var claims = new[]
             {
-                new Claim(JwtRegisteredClaimNames.Sub, acc.AccountId.ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, acc.Email),
-                new Claim(ClaimTypes.Role, acc.Role.Name),
+                new Claim(JwtRegisteredClaimNames.Sub, userId),
+                new Claim(ClaimTypes.Role, role),
                 new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
             };
 
-            var jwt = new JwtSecurityToken(issuer, audience, claims,
-                                           expires: accessExpiry, signingCredentials: creds);
+            var jwt = new JwtSecurityToken(
+                issuer,
+                audience,
+                claims,
+                expires: accessExpiry,
+                signingCredentials: creds
+            );
 
             var accessToken = new JwtSecurityTokenHandler().WriteToken(jwt);
             var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-            var refreshExp = DateTime.UtcNow.AddDays(int.Parse(_cfg["Jwt:RefreshTokenDays"]!));
+            var refreshExp = DateTime.UtcNow.AddDays(
+                int.Parse(_cfg["Jwt:RefreshTokenDays"] ?? "7")
+            );
 
             return (accessToken, accessExpiry, refreshToken, refreshExp);
         }
-
-
-
-        public async Task<ServiceResult<AuthResponse>> RegisterPatientAsync(RegisterPatientRequest req, CancellationToken ct = default)
-        {
-            var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
-
-            // Email tồn tại?
-            var existed = await _ctx.Accounts.AnyAsync(a => a.Email == email, ct);
-            if (existed) return ServiceResult<AuthResponse>.Fail("Email already registered.");
-
-            // Lấy role Patient
-            var rolePatient = await _ctx.Roles.FirstOrDefaultAsync(r => r.Name == "Patient", ct);
-            if (rolePatient is null)
-                return ServiceResult<AuthResponse>.Fail("Role 'Patient' not found. Please seed roles first.");
-
-            // Tạo Patient
-            var patient = new Patient
-            {
-                Name = req.Name.Trim(),
-                Email = email,
-                Phone = req.Phone.Trim(),
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            _ctx.Patients.Add(patient);
-            await _ctx.SaveChangesAsync(ct);
-
-            // Tạo Account
-            var acc = new Account
-            {
-                Email = email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
-                RoleId = rolePatient.RoleId,
-                PatientId = patient.PatientId,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            _ctx.Accounts.Add(acc);
-            await _ctx.SaveChangesAsync(ct);
-
-            // Load lại để lấy Role
-            acc = await _ctx.Accounts.Include(a => a.Role)
-                .FirstAsync(a => a.AccountId == acc.AccountId, ct);
-
-            // Sinh token
-            var tokens = GenerateTokens(acc);
-
-            acc.RefreshToken = tokens.RefreshToken;
-            acc.RefreshTokenExpiry = tokens.RefreshExpiry;
-            await _ctx.SaveChangesAsync(ct);
-
-            var response = new AuthResponse
-            {
-                AccessToken = tokens.AccessToken,
-                RefreshToken = tokens.RefreshToken,
-                ExpiresAt = tokens.AccessExpiry,
-                Role = acc.Role.Name,
-                AccountId = acc.AccountId
-            };
-
-            return ServiceResult<AuthResponse>.Ok(response, "Patient registered successfully.");
-        }
-
-
-
-        public async Task<bool> AdminCreateAccountAsync(AdminCreateAccountRequest req, CancellationToken ct = default)
-        {
-            // Kiểm tra email trùng
-            if (await _ctx.Accounts.AnyAsync(a => a.Email == req.Email, ct)) return false;
-
-            // Lấy role theo tên
-            var role = await _ctx.Roles.FirstOrDefaultAsync(r => r.Name == req.RoleName, ct);
-            if (role is null) return false;
-
-            // Ràng buộc link 1 trong 3 (giống CK_Accounts_OneLink)
-            var linkCount = (req.DoctorId.HasValue ? 1 : 0) + (req.PatientId.HasValue ? 1 : 0) + (req.StaffId.HasValue ? 1 : 0);
-            if (linkCount > 1) return false;
-
-            var acc = new Account
-            {
-                Email = req.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
-                RoleId = role.RoleId,
-                DoctorId = req.DoctorId,
-                PatientId = req.PatientId,
-                StaffId = req.StaffId,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-
-            _ctx.Accounts.Add(acc);
-            await _ctx.SaveChangesAsync(ct);
-            return true;
-        }
-
-
-
-
-        public async Task<CreateDoctorResult?> CreateDoctorByStaffAsync(
-          CreateDoctorMinimalRequest req,
-          int creatorStaffAccountId,
-          CancellationToken ct = default)
-        {
-            // 1) Validate
-            if (req.Departments == null || req.Departments.Count == 0)
-                throw new ArgumentException("At least one department is required.");
-            var primaryCount = req.Departments.Count(d => d.IsPrimary);
-            if (primaryCount != 1)
-                throw new ArgumentException("Exactly one primary department is required.");
-
-            // 2) Email chưa tồn tại?
-            if (await _ctx.Accounts.AnyAsync(a => a.Email == req.Email, ct))
-                return null;
-
-            // 3) Lấy role Doctor
-            var roleDoctor = await _ctx.Roles.FirstOrDefaultAsync(r => r.Name == "Doctor", ct)
-                             ?? throw new InvalidOperationException("Role 'Doctor' not found.");
-
-            // 4) Kiểm tra departments tồn tại & active
-            var deptIds = req.Departments.Select(d => d.DepartmentId).Distinct().ToList();
-            var existed = await _ctx.Departments
-                .Where(d => deptIds.Contains(d.DepartmentId) && d.IsActive)
-                .Select(d => d.DepartmentId)
-                .ToListAsync(ct);
-            if (existed.Count != deptIds.Count)
-                throw new ArgumentException("Some departments do not exist or are inactive.");
-
-            // 5) Tạo Doctor (tối giản)
-            var local = req.Email.Split('@')[0];
-            var doctor = new Doctor
-            {
-                Email = req.Email,
-                Name = string.IsNullOrWhiteSpace(local) ? "New Doctor" : local,
-                Phone = "", // placeholder
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            _ctx.Doctors.Add(doctor);
-            await _ctx.SaveChangesAsync(ct); // lấy DoctorId
-
-            // 6) Map DoctorDepartments
-            var docDepts = req.Departments.Select(d => new DoctorDepartment
-            {
-                DoctorId = doctor.DoctorId,
-                DepartmentId = d.DepartmentId,
-                IsPrimary = d.IsPrimary,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            });
-            _ctx.DoctorDepartments.AddRange(docDepts);
-
-            // 7) Tạo Account cho Doctor
-            var acc = new Account
-            {
-                Email = req.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
-                RoleId = roleDoctor.RoleId,
-                DoctorId = doctor.DoctorId,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            _ctx.Accounts.Add(acc);
-
-            await _ctx.SaveChangesAsync(ct);
-
-            // 8) Lấy lại Doctor kèm Departments để map response
-            var result = await _ctx.Doctors
-                .Include(d => d.DoctorDepartments)
-                    .ThenInclude(dd => dd.Department)
-                .FirstAsync(d => d.DoctorId == doctor.DoctorId, ct);
-
-            return new CreateDoctorResult
-            {
-                DoctorId = result.DoctorId,
-                Email = result.Email,
-             
-                Departments = result.DoctorDepartments.Select(dd => new DepartmentDto
-                {
-                    DepartmentId = dd.DepartmentId,
-                    Code = dd.Department.Code,
-                    Name = dd.Department.Name,
-                    IsPrimary = dd.IsPrimary
-                }).ToList()
-            };
-        }
-
-
-
-
-
-
-
-        public async Task<CreateStaffResult?> CreateStaffByAdminAsync(CreateStaffAccountRequest req, CancellationToken ct = default)
-        {
-            // Validate role name cho an toàn (không cho tạo role khác)
-            var allowed = new[] { "Staff_Doctor", "Staff_Patient" };
-            if (!allowed.Contains(req.StaffRoleName))
-                throw new ArgumentException("StaffRoleName must be 'Staff_Doctor' or 'Staff_Patient'.");
-
-            // Email unique?
-            if (await _ctx.Accounts.AnyAsync(a => a.Email == req.Email, ct))
-                return null;
-
-            // Tìm role theo Name (không dùng RoleId)
-            var role = await _ctx.Roles.FirstOrDefaultAsync(r => r.Name == req.StaffRoleName, ct)
-                       ?? throw new InvalidOperationException($"Role '{req.StaffRoleName}' not found.");
-
-            // Tạo Staff
-            var staff = new Staff
-            {
-                Email = req.Email,
-                Name = req.Name,
-                Phone = req.Phone,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            _ctx.Staffs.Add(staff);
-            await _ctx.SaveChangesAsync(ct);
-
-            // Tạo Account gắn Staff
-            var acc = new Account
-            {
-                Email = req.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
-                RoleId = role.RoleId,
-                StaffId = staff.StaffId,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            _ctx.Accounts.Add(acc);
-            await _ctx.SaveChangesAsync(ct);
-
-            return new CreateStaffResult
-            {
-                StaffId = staff.StaffId,
-                AccountId = acc.AccountId,
-                Email = acc.Email,
-                Role = role.Name
-            };
-        }
-
-       
-
-        public async Task<CreatePatientResult?> CreatePatientByStaffAsync(
-            CreatePatientMinimalRequest req,
-            int creatorStaffAccountId,
-            CancellationToken ct = default)
-        {
-            if (await _ctx.Accounts.AnyAsync(a => a.Email == req.Email, ct))
-                return null;
-
-            var rolePatient = await _ctx.Roles.FirstOrDefaultAsync(r => r.Name == "Patient", ct)
-                              ?? throw new InvalidOperationException("Role 'Patient' not found.");
-
-            var local = req.Email.Split('@')[0];
-            var patient = new Patient
-            {
-                Email = req.Email,
-                Name = string.IsNullOrWhiteSpace(local) ? "New Patient" : local,
-                Phone = "", // placeholder
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            _ctx.Patients.Add(patient);
-            await _ctx.SaveChangesAsync(ct);
-
-            var acc = new Account
-            {
-                Email = req.Email,
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.Password),
-                RoleId = rolePatient.RoleId,
-                PatientId = patient.PatientId,
-                IsActive = true,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
-            _ctx.Accounts.Add(acc);
-            await _ctx.SaveChangesAsync(ct);
-
-            return new CreatePatientResult
-            {
-                PatientId = patient.PatientId,
-                AccountId = acc.AccountId,
-                Email = acc.Email
-            };
-        }
     }
-
 }
-
-

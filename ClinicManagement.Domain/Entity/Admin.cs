@@ -7,11 +7,11 @@ using System.Threading.Tasks;
 
 namespace ClinicManagement.Domain.Entity
 {
-    public class Staff : BaseEntity
+    public class Admin : BaseEntity
     {
-        public int StaffId { get; set; }
+        public int AdminId { get; set; }
 
-
+        
         public string Email { get; set; } = default!;
         public string? PasswordHash { get; set; }
         public string? RefreshToken { get; set; }
@@ -20,11 +20,7 @@ namespace ClinicManagement.Domain.Entity
         public bool IsActive { get; set; } = true;
         public int? RoleId { get; set; }
         public Role? Role { get; set; }
-
-        
-        public string Name { get; set; } = default!;
+        public string FullName { get; set; } = "Administrator";
         public string? Phone { get; set; }
-
-        public bool IsAdmin { get; set; } = false;
     }
 }

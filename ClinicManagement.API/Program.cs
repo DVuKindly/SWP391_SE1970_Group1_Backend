@@ -19,6 +19,7 @@ namespace ClinicManagement.API
 
             // 2) Controllers
             builder.Services.AddControllers();
+            Console.WriteLine(BCrypt.Net.BCrypt.HashPassword("admin"));
 
             // 3) Swagger + Bearer
             builder.Services.AddEndpointsApiExplorer();
