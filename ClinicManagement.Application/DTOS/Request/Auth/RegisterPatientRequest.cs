@@ -1,26 +1,30 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace ClinicManagement.Application.DTOS.Request.Auth
 {
     public class RegisterPatientRequest
     {
-        [Required(ErrorMessage = "Email is required.")]
-        [EmailAddress(ErrorMessage = "Email format is invalid.")]
-        [MaxLength(254, ErrorMessage = "Email must be at most 254 characters.")]
+        [Required(ErrorMessage = "Vui lòng nhập email.")]
+        [EmailAddress(ErrorMessage = "Email không đúng định dạng.")]
+        [MaxLength(254, ErrorMessage = "Email không được vượt quá 254 ký tự.")]
         public string Email { get; set; } = default!;
 
-        [Required(ErrorMessage = "Password is required.")]
-        [MinLength(8, ErrorMessage = "Password must be at least 8 characters.")]
-        [MaxLength(128, ErrorMessage = "Password must be at most 128 characters.")]
+        [Required(ErrorMessage = "Vui lòng nhập mật khẩu.")]
+        [MinLength(8, ErrorMessage = "Mật khẩu phải có ít nhất 8 ký tự.")]
+        [MaxLength(128, ErrorMessage = "Mật khẩu không được vượt quá 128 ký tự.")]
         public string Password { get; set; } = default!;
 
-        [Required(ErrorMessage = "Name is required.")]
-        [MaxLength(100, ErrorMessage = "Name must be at most 100 characters.")]
-        public string Name { get; set; } = default!;
+        [Required(ErrorMessage = "Vui lòng nhập họ và tên.")]
+        [MaxLength(150, ErrorMessage = "Họ và tên không được vượt quá 150 ký tự.")]
+        public string FullName { get; set; } = default!;
 
-        [Required(ErrorMessage = "Phone is required.")]
-        [Phone(ErrorMessage = "Phone format is invalid.")]
-        [MaxLength(10, ErrorMessage = "Phone must be at most 10 characters.")]
+        [Required(ErrorMessage = "Vui lòng nhập số điện thoại.")]
+        [Phone(ErrorMessage = "Số điện thoại không hợp lệ.")]
+        [MaxLength(15, ErrorMessage = "Số điện thoại không được vượt quá 15 ký tự.")]
         public string Phone { get; set; } = default!;
+
+ 
+     
     }
 }

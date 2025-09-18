@@ -1,173 +1,334 @@
-﻿//using System.IdentityModel.Tokens.Jwt;
-//using System.Security.Claims;
-//using System.Security.Cryptography;
-//using System.Text;
-//using BCrypt.Net;
-//using ClinicManagement.Application.DTOS.Request.Auth;
-//using ClinicManagement.Application.DTOS.Response.Auth;
-//using ClinicManagement.Domain.Entity;
-//using ClinicManagement.Infrastructure.Persistence;
-//using Microsoft.EntityFrameworkCore;
-//using Microsoft.Extensions.Configuration;
-//using Microsoft.IdentityModel.Tokens;
+﻿using System.ComponentModel.DataAnnotations;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
+using ClinicManagement.Application;
+using ClinicManagement.Application.DTOS.Request.Auth;
+using ClinicManagement.Application.DTOS.Response.Auth;
+using ClinicManagement.Application.Interfaces.Services.Auth;
+using ClinicManagement.Domain.Entity;
+using ClinicManagement.Infrastructure.Persistence;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.IdentityModel.Tokens;
 
-//namespace ClinicManagement.Infrastructure.Services.Auth
-//{
-//    public class AuthService : IAuthService
-//    {
-//        private readonly AppDbContext _ctx;
-//        private readonly IConfiguration _cfg;
+namespace ClinicManagement.Infrastructure.Services.Auth
+{
+    public class AuthService : IAuthService
+    {
+        private readonly ClinicDbContext _ctx;
+        private readonly IConfiguration _cfg;
 
-//        public AuthService(AppDbContext ctx, IConfiguration cfg)
-//        {
-//            _ctx = ctx;
-//            _cfg = cfg;
-//        }
+        public AuthService(ClinicDbContext ctx, IConfiguration cfg)
+        {
+            _ctx = ctx;
+            _cfg = cfg;
+        }
 
-//        // doctor
-//        public async Task<AuthResponse?> LoginDoctorAsync(LoginRequest req, CancellationToken ct = default)
-//        {
-//            var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
-//            var doctor = await _ctx.Doctors
-//                .FirstOrDefaultAsync(d => d.Email == email && d.IsActive, ct);
-//            if (doctor is null) return null;
+        // patient
 
-//            if (!BCrypt.Net.BCrypt.Verify(req.Password, doctor.PasswordHash)) return null;
+        // 1 login
+        public async Task<ServiceResult<AuthResponse>> LoginPatientAsync(LoginRequest req, CancellationToken ct = default)
+        {
+          
+            var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
+            var pwd = (req.Password ?? string.Empty);
 
-//            var tokens = GenerateTokens(doctor.DoctorId.ToString(), "Doctor");
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(pwd))
+                return ServiceResult<AuthResponse>.Fail("Email và mật khẩu là bắt buộc.");
 
-//            doctor.RefreshToken = tokens.RefreshToken;
-//            doctor.RefreshTokenExpiry = tokens.RefreshExpiry;
-//            doctor.LastLoginAt = DateTime.UtcNow;
-//            await _ctx.SaveChangesAsync(ct);
+            if (!new EmailAddressAttribute().IsValid(email))
+                return ServiceResult<AuthResponse>.Fail("Email không đúng định dạng.");
 
-//            return new AuthResponse
-//            {
-//                AccessToken = tokens.AccessToken,
-//                RefreshToken = tokens.RefreshToken,
-//                ExpiresAt = tokens.AccessExpiry,
-//                Role = "Doctor",
-//                AccountId = doctor.DoctorId 
-//            };
-//        }
+         
+            var patient = await _ctx.Patients.FirstOrDefaultAsync(p => p.Email == email, ct);
+            if (patient is null)
+                return ServiceResult<AuthResponse>.Fail("Tài khoản bệnh nhân không tồn tại.");
 
-//        // patient
-//        public async Task<AuthResponse?> LoginPatientAsync(LoginRequest req, CancellationToken ct = default)
-//        {
-//            var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
-//            var patient = await _ctx.Patients
-//                .FirstOrDefaultAsync(p => p.Email == email && p.IsActive, ct);
-//            if (patient is null) return null;
+            if (!patient.IsActive)
+                return ServiceResult<AuthResponse>.Fail("Tài khoản đã bị khóa. Vui lòng liên hệ hỗ trợ.");
 
-//            if (!BCrypt.Net.BCrypt.Verify(req.Password, patient.PasswordHash)) return null;
+          
+            if (!BCrypt.Net.BCrypt.Verify(pwd, patient.PasswordHash))
+                return ServiceResult<AuthResponse>.Fail("Mật khẩu không chính xác.");
 
-//            var tokens = GenerateTokens(patient.PatientId.ToString(), "Patient");
+           
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, patient.PatientUserId.ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, patient.Email),
+                new Claim(ClaimTypes.Name, patient.FullName),
+                new Claim(ClaimTypes.Role, "Patient")
+            };
 
-//            patient.RefreshToken = tokens.RefreshToken;
-//            patient.RefreshTokenExpiry = tokens.RefreshExpiry;
-//            patient.LastLoginAt = DateTime.UtcNow;
-//            await _ctx.SaveChangesAsync(ct);
-
-//            return new AuthResponse
-//            {
-//                AccessToken = tokens.AccessToken,
-//                RefreshToken = tokens.RefreshToken,
-//                ExpiresAt = tokens.AccessExpiry,
-//                Role = "Patient",
-//                AccountId = patient.PatientId
-//            };
-//        }
-
-//        // staff
-//        public async Task<AuthResponse?> LoginStaffAsync(LoginRequest req, CancellationToken ct = default)
-//        {
-//            var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
-//            var staff = await _ctx.Staffs
-//                .FirstOrDefaultAsync(s => s.Email == email && s.IsActive, ct);
-//            if (staff is null) return null;
-
-//            if (!BCrypt.Net.BCrypt.Verify(req.Password, staff.PasswordHash)) return null;
-
-//            var tokens = GenerateTokens(staff.StaffId.ToString(), "Staff");
-
-//            staff.RefreshToken = tokens.RefreshToken;
-//            staff.RefreshTokenExpiry = tokens.RefreshExpiry;
-//            staff.LastLoginAt = DateTime.UtcNow;
-//            await _ctx.SaveChangesAsync(ct);
-
-//            return new AuthResponse
-//            {
-//                AccessToken = tokens.AccessToken,
-//                RefreshToken = tokens.RefreshToken,
-//                ExpiresAt = tokens.AccessExpiry,
-//                Role = "Staff",
-//                AccountId = staff.StaffId
-//            };
-//        }
-
-//        // admin
-//        public async Task<AuthResponse?> LoginAdminAsync(LoginRequest req, CancellationToken ct = default)
-//        {
-//            var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
-//            // Admin chính là Staff có cờ IsAdmin
-//            var admin = await _ctx.Admins
-//                .FirstOrDefaultAsync(s => s.Email == email && s.IsActive, ct);
-//            if (admin is null) return null;
-
-//            if (!BCrypt.Net.BCrypt.Verify(req.Password, admin.PasswordHash)) return null;
-
-//            var tokens = GenerateTokens(admin.AdminId.ToString(), "Admin");
-
-//            admin.RefreshToken = tokens.RefreshToken;
-//            admin.RefreshTokenExpiry = tokens.RefreshExpiry;
-//            admin.LastLoginAt = DateTime.UtcNow;
-//            await _ctx.SaveChangesAsync(ct);
-
-//            return new AuthResponse
-//            {
-//                AccessToken = tokens.AccessToken,
-//                RefreshToken = tokens.RefreshToken,
-//                ExpiresAt = tokens.AccessExpiry,
-//                Role = "Admin",
-//                AccountId = admin.AdminId
-//            };
-//        }
+            var (accessToken, refreshToken) = GenerateTokens(claims);
 
        
-//        private (string AccessToken, DateTime AccessExpiry, string RefreshToken, DateTime RefreshExpiry)
-//            GenerateTokens(string userId, string role)
-//        {
-//            var issuer = _cfg["Jwt:Issuer"]!;
-//            var audience = _cfg["Jwt:Audience"]!;
-//            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_cfg["Jwt:Key"]!));
-//            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            patient.RefreshToken = refreshToken;
+            patient.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+            patient.LastLoginAtUtc = DateTime.UtcNow;
+            await _ctx.SaveChangesAsync(ct);
 
-//            var accessExpiry = DateTime.UtcNow.AddMinutes(
-//                int.Parse(_cfg["Jwt:AccessTokenMinutes"] ?? "60")
-//            );
+            // 6) Return
+            var payload = new AuthResponse
+            {
+                UserId = patient.PatientUserId,
+                Email = patient.Email,
+                FullName = patient.FullName,
+                Roles = new[] { "Patient" },
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
+            };
+            return ServiceResult<AuthResponse>.Ok(payload, "Đăng nhập bệnh nhân thành công.");
+        }
 
-//            var claims = new[]
-//            {
-//                new Claim(JwtRegisteredClaimNames.Sub, userId),
-//                new Claim(ClaimTypes.Role, role),
-//                new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
-//            };
+        //2 register
+        public async Task<ServiceResult<AuthResponse>> RegisterPatientAsync(RegisterPatientRequest req, CancellationToken ct = default)
+        {
+            var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
 
-//            var jwt = new JwtSecurityToken(
-//                issuer,
-//                audience,
-//                claims,
-//                expires: accessExpiry,
-//                signingCredentials: creds
-//            );
+            // Kiểm tra email đã tồn tại
+            var existed = await _ctx.Patients.AnyAsync(p => p.Email == email, ct);
+            if (existed)
+                return ServiceResult<AuthResponse>.Fail("Email đã được đăng ký.");
 
-//            var accessToken = new JwtSecurityTokenHandler().WriteToken(jwt);
-//            var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-//            var refreshExp = DateTime.UtcNow.AddDays(
-//                int.Parse(_cfg["Jwt:RefreshTokenDays"] ?? "7")
-//            );
+ 
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword(req.Password);
 
-//            return (accessToken, accessExpiry, refreshToken, refreshExp);
-//        }
-//    }
-//}
+      
+            var patient = new Patient
+            {
+                Email = email,
+                PasswordHash = passwordHash,
+                FullName = req.FullName.Trim(),
+                Phone = req.Phone.Trim(),
+                IsActive = true,
+                CreatedAtUtc = DateTime.UtcNow
+            };
+
+            _ctx.Patients.Add(patient);
+            await _ctx.SaveChangesAsync(ct);
+
+            var claims = new List<Claim>
+    {
+        new Claim(JwtRegisteredClaimNames.Sub, patient.PatientUserId.ToString()),
+        new Claim(JwtRegisteredClaimNames.Email, patient.Email),
+        new Claim(ClaimTypes.Name, patient.FullName),
+        new Claim(ClaimTypes.Role, "Patient")
+    };
+
+            var (accessToken, refreshToken) = GenerateTokens(claims);
+
+       
+            patient.RefreshToken = refreshToken;
+            patient.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+            patient.LastLoginAtUtc = DateTime.UtcNow;
+            await _ctx.SaveChangesAsync(ct);
+
+            var payload = new AuthResponse
+            {
+                UserId = patient.PatientUserId,
+                Email = patient.Email,
+                FullName = patient.FullName,
+                Roles = new[] { "Patient" },
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
+            };
+
+            return ServiceResult<AuthResponse>.Ok(payload, "Đăng ký bệnh nhân thành công.");
+        }
+
+
+
+
+
+
+        // employee
+        public async Task<ServiceResult<AuthResponse>> LoginEmployeeAsync(LoginRequest req, CancellationToken ct = default)
+        {
+           
+            var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
+            var pwd = (req.Password ?? string.Empty);
+
+            if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(pwd))
+                return ServiceResult<AuthResponse>.Fail("Email và mật khẩu là bắt buộc.");
+
+            if (!new EmailAddressAttribute().IsValid(email))
+                return ServiceResult<AuthResponse>.Fail("Email không đúng định dạng.");
+
+         
+            var employee = await _ctx.Employees
+                .Include(e => e.EmployeeRoles).ThenInclude(er => er.Role)
+                .FirstOrDefaultAsync(e => e.Email == email, ct);
+
+            if (employee is null)
+                return ServiceResult<AuthResponse>.Fail("Tài khoản nhân sự không tồn tại.");
+
+            if (!employee.IsActive)
+                return ServiceResult<AuthResponse>.Fail("Tài khoản đã bị khóa. Vui lòng liên hệ quản trị.");
+
+        
+            if (!BCrypt.Net.BCrypt.Verify(pwd, employee.PasswordHash))
+                return ServiceResult<AuthResponse>.Fail("Mật khẩu không chính xác.");
+
+           
+            var roles = employee.EmployeeRoles.Select(er => er.Role.Name).Distinct().ToArray();
+            if (roles.Length == 0)
+                return ServiceResult<AuthResponse>.Fail("Tài khoản chưa được gán vai trò. Vui lòng liên hệ quản trị.");
+
+         
+            var claims = new List<Claim>
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, employee.EmployeeUserId.ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, employee.Email),
+                new Claim(ClaimTypes.Name, employee.FullName)
+            };
+            foreach (var r in roles)
+                claims.Add(new Claim(ClaimTypes.Role, r));
+
+            var (accessToken, refreshToken) = GenerateTokens(claims);
+
+         
+            employee.RefreshToken = refreshToken;
+            employee.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
+            employee.LastLoginAtUtc = DateTime.UtcNow;
+            await _ctx.SaveChangesAsync(ct);
+
+          
+            var payload = new AuthResponse
+            {
+                UserId = employee.EmployeeUserId,
+                Email = employee.Email,
+                FullName = employee.FullName,
+                Roles = roles,
+                AccessToken = accessToken,
+                RefreshToken = refreshToken
+            };
+            return ServiceResult<AuthResponse>.Ok(payload, "Đăng nhập nhân sự thành công.");
+        }
+
+
+        public async Task<ServiceResult<AuthResponse>> RegisterStaffAsync(RegisterEmployeeRequest req, int createdById, CancellationToken ct = default)
+        {
+            var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
+            if (await _ctx.Employees.AnyAsync(e => e.Email == email, ct))
+                return ServiceResult<AuthResponse>.Fail("Email đã tồn tại.");
+
+            if (req.RoleName != "Staff_Patient" && req.RoleName != "Staff_Doctor")
+                return ServiceResult<AuthResponse>.Fail("Admin chỉ được tạo Staff_Patient hoặc Staff_Doctor.");
+
+            var role = await _ctx.Roles.FirstOrDefaultAsync(r => r.Name == req.RoleName, ct);
+            if (role is null) return ServiceResult<AuthResponse>.Fail("Role không tồn tại.");
+
+            var hash = BCrypt.Net.BCrypt.HashPassword(req.Password);
+
+            var employee = new Employee
+            {
+                Email = email,
+                PasswordHash = hash,
+                FullName = req.FullName.Trim(),
+                Phone = req.Phone,
+                IsActive = true,
+                CreatedAtUtc = DateTime.UtcNow
+            };
+            _ctx.Employees.Add(employee);
+            await _ctx.SaveChangesAsync(ct);
+
+            var empRole = new EmployeeRole
+            {
+                EmployeeId = employee.EmployeeUserId,
+                RoleId = role.RoleId,
+                AssignedById = createdById,
+                AssignedAtUtc = DateTime.UtcNow
+            };
+            _ctx.EmployeeRoles.Add(empRole);
+            await _ctx.SaveChangesAsync(ct);
+
+            return ServiceResult<AuthResponse>.Ok(new AuthResponse
+            {
+                UserId = employee.EmployeeUserId,
+                Email = employee.Email,
+                FullName = employee.FullName,
+                Roles = new[] { req.RoleName }
+            }, "Tạo tài khoản Staff thành công.");
+        }
+
+        public async Task<ServiceResult<AuthResponse>> RegisterDoctorAsync(RegisterEmployeeRequest req, int createdById, CancellationToken ct = default)
+        {
+            var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
+            if (await _ctx.Employees.AnyAsync(e => e.Email == email, ct))
+                return ServiceResult<AuthResponse>.Fail("Email đã tồn tại.");
+
+            if (req.RoleName != "Doctor")
+                return ServiceResult<AuthResponse>.Fail("Staff_Doctor chỉ được tạo Doctor.");
+
+            var role = await _ctx.Roles.FirstOrDefaultAsync(r => r.Name == "Doctor", ct);
+            if (role is null) return ServiceResult<AuthResponse>.Fail("Role Doctor chưa được seed.");
+
+            var hash = BCrypt.Net.BCrypt.HashPassword(req.Password);
+
+            var employee = new Employee
+            {
+                Email = email,
+                PasswordHash = hash,
+                FullName = req.FullName.Trim(),
+                Phone = req.Phone,
+                IsActive = true,
+                CreatedAtUtc = DateTime.UtcNow
+            };
+            _ctx.Employees.Add(employee);
+            await _ctx.SaveChangesAsync(ct);
+
+            var empRole = new EmployeeRole
+            {
+                EmployeeId = employee.EmployeeUserId,
+                RoleId = role.RoleId,
+                AssignedById = createdById,
+                AssignedAtUtc = DateTime.UtcNow
+            };
+            _ctx.EmployeeRoles.Add(empRole);
+
+            // DoctorProfile khởi tạo rỗng
+            var profile = new DoctorProfile
+            {
+                EmployeeId = employee.EmployeeUserId,
+                Title = "Bác sĩ",
+                CreatedAtUtc = DateTime.UtcNow
+            };
+            _ctx.DoctorProfiles.Add(profile);
+
+            await _ctx.SaveChangesAsync(ct);
+
+            return ServiceResult<AuthResponse>.Ok(new AuthResponse
+            {
+                UserId = employee.EmployeeUserId,
+                Email = employee.Email,
+                FullName = employee.FullName,
+                Roles = new[] { "Doctor" }
+            }, "Tạo tài khoản Doctor thành công.");
+        }
+
+
+
+        // token
+        private (string accessToken, string refreshToken) GenerateTokens(IEnumerable<Claim> claims)
+        {
+            var jwt = _cfg.GetSection("Jwt");
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var token = new JwtSecurityToken(
+                issuer: jwt["Issuer"],
+                audience: jwt["Audience"],
+                claims: claims,
+                expires: DateTime.UtcNow.AddMinutes(30),
+                signingCredentials: creds
+            );
+
+            var accessToken = new JwtSecurityTokenHandler().WriteToken(token);
+            var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+            return (accessToken, refreshToken);
+        }
+    }
+}

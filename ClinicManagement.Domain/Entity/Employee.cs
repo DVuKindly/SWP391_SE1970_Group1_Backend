@@ -1,25 +1,48 @@
 ﻿using ClinicManagement.Domain.Entity.Common;
-using ClinicManagement.Domain.Entity;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 
-public class Employee : BaseEntity
+namespace ClinicManagement.Domain.Entity
 {
-    public int EmployeeUserId { get; set; }
+    public class Employee : BaseEntity
+    {
+        [Key]
+        public int EmployeeUserId { get; set; }
 
-    public string Email { get; set; } = default!;
-    public string PasswordHash { get; set; } = default!;
-    public string? RefreshToken { get; set; }
-    public DateTime? RefreshTokenExpiry { get; set; }
-    public DateTime? LastLoginAt { get; set; }
-    public bool IsActive { get; set; } = true;
+        [MaxLength(200)]
+        public string Email { get; set; } = default!;
 
-    public string FullName { get; set; } = default!;
-    public string? Phone { get; set; }
+        [MaxLength(200)]
+        public string PasswordHash { get; set; } = default!;
 
-    // Dùng cho bác sĩ (nullable)
-    public string? Specialization { get; set; }
-    public string? Image { get; set; }
+        public string? RefreshToken { get; set; }
+        public DateTime? RefreshTokenExpiry { get; set; }
+        public DateTime? LastLoginAtUtc { get; set; }
+        public bool IsActive { get; set; } = true;
 
-    // Quan hệ RBAC
-    public ICollection<Role> Roles { get; set; } = new List<Role>();
-    public ICollection<DoctorSchedule> Schedules { get; set; } = new List<DoctorSchedule>();
+        [MaxLength(150)]
+        public string FullName { get; set; } = default!;
+
+        [MaxLength(30)]
+        public string? Phone { get; set; }
+
+
+      
+
+        [MaxLength(300)]
+        public string? Image { get; set; }
+        public DoctorProfile? DoctorProfile { get; set; }
+
+        public ICollection<EmployeeRole> EmployeeRoles { get; set; } = new List<EmployeeRole>();
+
+   
+        public ICollection<DoctorSchedule> Schedules { get; set; } = new List<DoctorSchedule>();
+
+        public ICollection<DoctorDepartment> DoctorDepartments { get; set; } = new List<DoctorDepartment>();
+
+        public ICollection<Appointment> AppointmentsAsDoctor { get; set; } = new List<Appointment>();
+        public ICollection<Appointment> AppointmentsCreated { get; set; } = new List<Appointment>();
+        public ICollection<Appointment> AppointmentsApproved { get; set; } = new List<Appointment>();
+    }
 }

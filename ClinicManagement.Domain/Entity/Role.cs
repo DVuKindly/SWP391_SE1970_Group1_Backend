@@ -1,15 +1,20 @@
 ﻿using ClinicManagement.Domain.Entity.Common;
 using System.Collections.Generic;
-using System.Security;
+using System.ComponentModel.DataAnnotations;
 
 namespace ClinicManagement.Domain.Entity
 {
     public class Role : BaseEntity
     {
-        public int RoleId { get; set; }
-        public string Name { get; set; } = default!;
-        public ICollection<Employee> Employees { get; set; } = new List<Employee>();
-        public ICollection<Permission> Permissions { get; set; } = new List<Permission>();
-    }
+        public int RoleId { get; set; }   // Admin, Staff_Patient, Staff_Doctor, Doctor
 
+        [MaxLength(100)]
+        public string Name { get; set; } = default!;
+
+        [MaxLength(300)]
+        public string? Description { get; set; }
+
+        public ICollection<EmployeeRole> EmployeeRoles { get; set; } = new List<EmployeeRole>();
+        public ICollection<RolePermission> RolePermissions { get; set; } = new List<RolePermission>();
+    }
 }

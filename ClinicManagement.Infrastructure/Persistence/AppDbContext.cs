@@ -1,186 +1,199 @@
 ﻿using ClinicManagement.Domain.Entity;
-using ClinicManagement.Domain.Entity.Common;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
 
 namespace ClinicManagement.Infrastructure.Persistence
 {
-    public class AppDbContext : DbContext
+    public class ClinicDbContext : DbContext
     {
-        public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
+        public ClinicDbContext(DbContextOptions<ClinicDbContext> options) : base(options) { }
 
-        // ================= DbSets =================
-        public DbSet<Role> Roles => Set<Role>();
-        public DbSet<Permission> Permissions => Set<Permission>();
-        public DbSet<Patient> Patients => Set<Patient>();
-        public DbSet<Employee> Employees => Set<Employee>();
-        public DbSet<DoctorSchedule> DoctorSchedules => Set<DoctorSchedule>();
-        public DbSet<Department> Departments => Set<Department>();
-        public DbSet<DoctorDepartment> DoctorDepartments => Set<DoctorDepartment>();
-        public DbSet<Exam> Exams => Set<Exam>();
-        public DbSet<Appointment> Appointments => Set<Appointment>();
+        // DbSet cho tất cả entity
+        public DbSet<Patient> Patients { get; set; } = default!;
+        public DbSet<Employee> Employees { get; set; } = default!;
+        public DbSet<Role> Roles { get; set; } = default!;
+        public DbSet<Permission> Permissions { get; set; } = default!;
+        public DbSet<EmployeeRole> EmployeeRoles { get; set; } = default!;
+        public DbSet<RolePermission> RolePermissions { get; set; } = default!;
+        public DbSet<Appointment> Appointments { get; set; } = default!;
+        public DbSet<Department> Departments { get; set; } = default!;
+        public DbSet<DoctorDepartment> DoctorDepartments { get; set; } = default!;
+        public DbSet<DoctorSchedule> DoctorSchedules { get; set; } = default!;
+        public DbSet<Exam> Exams { get; set; } = default!;
+        public DbSet<DoctorProfile> DoctorProfiles { get; set; } = default!;
+        public DbSet<RegistrationRequest> RegistrationRequests { get; set; } = default!;
 
-        protected override void OnModelCreating(ModelBuilder b)
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
-            base.OnModelCreating(b);
+            base.OnModelCreating(modelBuilder);
 
-            // ================= Role =================
-            b.Entity<Role>(e =>
-            {
-                e.HasKey(x => x.RoleId);
-                e.HasIndex(x => x.Name).IsUnique();
+            base.OnModelCreating(modelBuilder);
 
-                // Many-to-Many Role <-> Permission
-                e.HasMany(r => r.Permissions)
-                 .WithMany(p => p.Roles)
-                 .UsingEntity<Dictionary<string, object>>(
-                    "RolePermission",
-                    j => j.HasOne<Permission>().WithMany().HasForeignKey("PermissionId").OnDelete(DeleteBehavior.Cascade),
-                    j => j.HasOne<Role>().WithMany().HasForeignKey("RoleId").OnDelete(DeleteBehavior.Cascade),
-                    j =>
-                    {
-                        j.HasKey("RoleId", "PermissionId");
-                        j.ToTable("RolePermissions");
-                    });
-            });
+            modelBuilder.Entity<RegistrationRequest>()
+                .HasKey(r => r.RegistrationRequestId);
 
-            // ================= Permission =================
-            b.Entity<Permission>(e =>
-            {
-                e.HasKey(x => x.PermissionId);
-                e.HasIndex(x => x.Name).IsUnique();
-            });
+            modelBuilder.Entity<RegistrationRequest>()
+                .HasIndex(r => r.Email); 
+            modelBuilder.Entity<Patient>()
+                .HasKey(p => p.PatientUserId);
 
-            // ================= Patient =================
-            b.Entity<Patient>(e =>
-            {
-                e.HasKey(x => x.PatientUserId);
-                e.HasIndex(x => x.Email).IsUnique();
-                e.Property(x => x.IsActive).HasDefaultValue(true);
+            modelBuilder.Entity<Patient>()
+                .HasIndex(p => p.Email)
+                .IsUnique();
 
-                e.HasMany(x => x.Appointments)
-                 .WithOne(a => a.Patient)
-                 .HasForeignKey(a => a.PatientId)
-                 .OnDelete(DeleteBehavior.Restrict);
-            });
+          
+            modelBuilder.Entity<Employee>()
+                .HasKey(e => e.EmployeeUserId);
 
-            // ================= Employee =================
-            b.Entity<Employee>(e =>
-            {
-                e.HasKey(x => x.EmployeeUserId);
-                e.HasIndex(x => x.Email).IsUnique();
-                e.Property(x => x.IsActive).HasDefaultValue(true);
+            modelBuilder.Entity<Employee>()
+                .HasIndex(e => e.Email)
+                .IsUnique();
 
-                // Many-to-Many Employee <-> Role
-                e.HasMany(emp => emp.Roles)
-                 .WithMany(role => role.Employees)
-                 .UsingEntity<Dictionary<string, object>>(
-                    "EmployeeRole",
-                    j => j.HasOne<Role>().WithMany().HasForeignKey("RoleId").OnDelete(DeleteBehavior.Cascade),
-                    j => j.HasOne<Employee>().WithMany().HasForeignKey("EmployeeId").OnDelete(DeleteBehavior.Cascade),
-                    j =>
-                    {
-                        j.HasKey("EmployeeId", "RoleId");
-                        j.ToTable("EmployeeRoles");
-                    });
+            modelBuilder.Entity<DoctorProfile>()
+                .HasOne(dp => dp.Employee)
+                .WithOne(e => e.DoctorProfile)
+                .HasForeignKey<DoctorProfile>(dp => dp.EmployeeId)
+                .OnDelete(DeleteBehavior.Cascade);
+         
+            modelBuilder.Entity<Role>()
+                .HasKey(r => r.RoleId);
 
-                // Lịch bác sĩ
-                e.HasMany(x => x.Schedules)
-                 .WithOne(s => s.Doctor)
-                 .HasForeignKey(s => s.DoctorId)
-                 .OnDelete(DeleteBehavior.Cascade);
-            });
+            modelBuilder.Entity<Permission>()
+                .HasKey(p => p.PermissionId);
 
-            // ================= Department =================
-            b.Entity<Department>(e =>
-            {
-                e.HasKey(x => x.DepartmentId);
-                e.HasIndex(x => x.Code).IsUnique();
-                e.Property(x => x.IsActive).HasDefaultValue(true);
+         
+            modelBuilder.Entity<EmployeeRole>()
+                .HasKey(er => new { er.EmployeeId, er.RoleId });
 
-                e.HasMany(d => d.Exams)
-                 .WithOne(e => e.Department)
-                 .HasForeignKey(e => e.DepartmentId)
-                 .OnDelete(DeleteBehavior.SetNull);
-            });
+            modelBuilder.Entity<EmployeeRole>()
+                .HasOne(er => er.Employee)
+                .WithMany(e => e.EmployeeRoles)
+                .HasForeignKey(er => er.EmployeeId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // ================= DoctorDepartment =================
-            b.Entity<DoctorDepartment>(e =>
-            {
-                e.HasKey(x => x.DoctorDepartmentId);
+            modelBuilder.Entity<EmployeeRole>()
+                .HasOne(er => er.Role)
+                .WithMany(r => r.EmployeeRoles)
+                .HasForeignKey(er => er.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-                e.HasOne(x => x.Doctor)
-                 .WithMany()
-                 .HasForeignKey(x => x.DoctorId)
-                 .OnDelete(DeleteBehavior.Cascade);
+          
+            modelBuilder.Entity<RolePermission>()
+                .HasKey(rp => new { rp.RoleId, rp.PermissionId });
 
-                e.HasOne(x => x.Department)
-                 .WithMany(d => d.DoctorDepartments)
-                 .HasForeignKey(x => x.DepartmentId)
-                 .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<RolePermission>()
+                .HasOne(rp => rp.Role)
+                .WithMany(r => r.RolePermissions)
+                .HasForeignKey(rp => rp.RoleId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-                // Bác sĩ chỉ có 1 khoa chính
-                e.HasIndex(x => x.DoctorId)
-                 .IsUnique()
-                 .HasFilter("[IsPrimary] = 1")
-                 .HasDatabaseName("UX_DoctorDepartments_Primary");
-            });
+            modelBuilder.Entity<RolePermission>()
+                .HasOne(rp => rp.Permission)
+                .WithMany(p => p.RolePermissions)
+                .HasForeignKey(rp => rp.PermissionId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // ================= Exam =================
-            b.Entity<Exam>(e =>
-            {
-                e.HasKey(x => x.ExamId);
-                e.Property(x => x.IsActive).HasDefaultValue(true);
-            });
+            modelBuilder.Entity<Department>()
+                .HasKey(d => d.DepartmentId);
 
-            // ================= DoctorSchedule =================
-            b.Entity<DoctorSchedule>(e =>
-            {
-                e.HasKey(x => x.ScheduleId);
-                e.Property(x => x.IsActive).HasDefaultValue(true);
+            modelBuilder.Entity<DoctorDepartment>()
+                .HasKey(dd => dd.DoctorDepartmentId);
 
-                e.HasOne(x => x.CreatedBy)
-                 .WithMany()
-                 .HasForeignKey(x => x.CreatedById)
-                 .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<DoctorDepartment>()
+                .HasOne(dd => dd.Doctor)
+                .WithMany(e => e.DoctorDepartments)
+                .HasForeignKey(dd => dd.DoctorId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-                e.HasCheckConstraint("CK_Schedule_Time", "[EndTime] > [StartTime]");
-            });
+            modelBuilder.Entity<DoctorDepartment>()
+                .HasOne(dd => dd.Department)
+                .WithMany(d => d.DoctorDepartments)
+                .HasForeignKey(dd => dd.DepartmentId)
+                .OnDelete(DeleteBehavior.Cascade);
 
-            // ================= Appointment =================
-            b.Entity<Appointment>(e =>
-            {
-                e.HasKey(x => x.AppointmentId);
-                e.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
+            modelBuilder.Entity<Exam>()
+                .HasKey(e => e.ExamId);
 
-                e.HasOne(a => a.Patient)
-                 .WithMany(p => p.Appointments)
-                 .HasForeignKey(a => a.PatientId)
-                 .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Exam>()
+                .Property(e => e.Price)
+                .HasColumnType("decimal(18,2)");
 
-                e.HasOne(a => a.Doctor)
-                 .WithMany()
-                 .HasForeignKey(a => a.DoctorId)
-                 .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Appointment>()
+                .HasKey(a => a.AppointmentId);
 
-                e.HasOne(a => a.CreatedBy)
-                 .WithMany()
-                 .HasForeignKey(a => a.CreatedById)
-                 .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<Appointment>()
+                .HasOne(a => a.Patient)
+                .WithMany(p => p.Appointments)
+                .HasForeignKey(a => a.PatientId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-                e.HasOne(a => a.ApprovedBy)
-                 .WithMany()
-                 .HasForeignKey(a => a.ApprovedById)
-                 .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<Appointment>()
+                .HasOne(a => a.Doctor)
+                .WithMany(e => e.AppointmentsAsDoctor)
+                .HasForeignKey(a => a.DoctorId)
+                .OnDelete(DeleteBehavior.Restrict);
 
-                e.HasOne(a => a.Exam)
-                 .WithMany()
-                 .HasForeignKey(a => a.ExamId)
-                 .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<Appointment>()
+                .HasOne(a => a.CreatedBy)
+                .WithMany(e => e.AppointmentsCreated)
+                .HasForeignKey(a => a.CreatedById)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<Employee>().HasData(
+    new Employee
+    {
+        EmployeeUserId = 1,
+        Email = "admin@gmail.com",
+        PasswordHash ="$2a$11$7Pb2XS4fRQWCvUfRhkTNJO2Qib1pTOFjWOX1SQSyIhjNN1CzfXVKC",
+        FullName = "Super Admin",
+        Phone = "0123456789",
+        IsActive = true,
+        CreatedAtUtc = DateTime.UtcNow
+    }
+);
 
-                e.HasCheckConstraint("CK_Appointment_Time", "[EndTime] > [StartTime]");
-            });
+            modelBuilder.Entity<EmployeeRole>().HasData(
+                new EmployeeRole
+                {
+                    EmployeeId = 1,
+                    RoleId = 1,  // RoleId=1 là Admin (đã seed ở trên)
+                    AssignedById = null,
+                    AssignedAtUtc = DateTime.UtcNow
+                }
+            );
+            modelBuilder.Entity<Appointment>()
+                .HasOne(a => a.ApprovedBy)
+                .WithMany(e => e.AppointmentsApproved)
+                .HasForeignKey(a => a.ApprovedById)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<Appointment>()
+                .HasOne(a => a.Exam)
+                .WithMany()
+                .HasForeignKey(a => a.ExamId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+
+            modelBuilder.Entity<DoctorSchedule>()
+                .HasKey(ds => ds.ScheduleId);
+
+            modelBuilder.Entity<DoctorSchedule>()
+                .HasOne(ds => ds.Doctor)
+                .WithMany(e => e.Schedules)
+                .HasForeignKey(ds => ds.DoctorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<DoctorSchedule>()
+                .HasOne(ds => ds.CreatedBy)
+                .WithMany()
+                .HasForeignKey(ds => ds.CreatedById)
+                .OnDelete(DeleteBehavior.Restrict);
+
+         
+            modelBuilder.Entity<Role>().HasData(
+                new Role { RoleId = 1, Name = "Admin" },
+                new Role { RoleId = 2, Name = "Staff_Patient" },
+                new Role { RoleId = 3, Name = "Staff_Doctor" },
+                new Role { RoleId = 4, Name = "Doctor" }
+            );
         }
     }
 }

@@ -1,15 +1,26 @@
-﻿// ClinicManagement.Application.Interfaces.Services.Auth.IAuthService
+﻿
+using ClinicManagement.Application.DTOS.Common;
 using ClinicManagement.Application.DTOS.Request.Auth;
 using ClinicManagement.Application.DTOS.Response.Auth;
-using System.Security.Claims;
+using System.Threading;
+using System.Threading.Tasks;
 
-public interface IAuthService
+namespace ClinicManagement.Application.Interfaces.Services.Auth
 {
+    public interface IAuthService
+    {
+        //patient 
+        Task<ServiceResult<AuthResponse>> LoginPatientAsync(LoginRequest req, CancellationToken ct = default);
+        Task<ServiceResult<AuthResponse>> RegisterPatientAsync(RegisterPatientRequest req, CancellationToken ct = default);
 
-    Task<AuthResponse?> LoginDoctorAsync(LoginRequest req, CancellationToken ct = default);
-    Task<AuthResponse?> LoginPatientAsync(LoginRequest req, CancellationToken ct = default);
-    Task<AuthResponse?> LoginStaffAsync(LoginRequest req, CancellationToken ct = default);
-    Task<AuthResponse?> LoginAdminAsync(LoginRequest req, CancellationToken ct = default);
+        // employee
+        Task<ServiceResult<AuthResponse>> LoginEmployeeAsync(LoginRequest req, CancellationToken ct = default);
 
 
+
+        Task<ServiceResult<AuthResponse>> RegisterStaffAsync(RegisterEmployeeRequest req, int createdById, CancellationToken ct = default);
+        Task<ServiceResult<AuthResponse>> RegisterDoctorAsync(RegisterEmployeeRequest req, int createdById, CancellationToken ct = default);
+
+
+    }
 }
