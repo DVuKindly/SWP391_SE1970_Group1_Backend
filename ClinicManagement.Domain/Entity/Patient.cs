@@ -1,34 +1,29 @@
-﻿using ClinicManagement.Domain.Entity.Common;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace ClinicManagement.Domain.Entity
+namespace ClinicManagement.Domain.Entity.Common
 {
     public class Patient : BaseEntity
     {
-        public int PatientId { get; set; }
+        public int PatientUserId { get; set; }
 
-        // auth
         public string Email { get; set; } = default!;
-        public string? PasswordHash { get; set; }
+        public string PasswordHash { get; set; } = default!;
         public string? RefreshToken { get; set; }
         public DateTime? RefreshTokenExpiry { get; set; }
         public DateTime? LastLoginAt { get; set; }
         public bool IsActive { get; set; } = true;
-        public int? RoleId { get; set; }
-        public Role? Role { get; set; }
 
-        // profile
+        // Thông tin hồ sơ bệnh nhân
+        public string FullName { get; set; } = default!;
         public string Phone { get; set; } = default!;
-        public string Name { get; set; } = default!;
         public string? Address { get; set; }
-        public string? Gender { get; set; }
         public DateTime? DOB { get; set; }
-        public string? Note { get; set; }
 
         public ICollection<Appointment> Appointments { get; set; } = new List<Appointment>();
     }
+
 }

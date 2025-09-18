@@ -1,10 +1,6 @@
 ﻿using ClinicManagement.Domain.Entity.Common;
-using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Security.Principal;
-using System.Text;
-using System.Threading.Tasks;
+using System.Security;
 
 namespace ClinicManagement.Domain.Entity
 {
@@ -12,10 +8,8 @@ namespace ClinicManagement.Domain.Entity
     {
         public int RoleId { get; set; }
         public string Name { get; set; } = default!;
-
-     
-        public ICollection<Doctor> Doctors { get; set; } = new List<Doctor>();
-        public ICollection<Patient> Patients { get; set; } = new List<Patient>();
-        public ICollection<Staff> Staffs { get; set; } = new List<Staff>();
+        public ICollection<Employee> Employees { get; set; } = new List<Employee>();
+        public ICollection<Permission> Permissions { get; set; } = new List<Permission>();
     }
+
 }

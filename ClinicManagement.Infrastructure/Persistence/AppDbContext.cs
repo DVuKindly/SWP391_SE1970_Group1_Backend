@@ -1,5 +1,8 @@
 ﻿using ClinicManagement.Domain.Entity;
+using ClinicManagement.Domain.Entity.Common;
 using Microsoft.EntityFrameworkCore;
+using System;
+using System.Collections.Generic;
 
 namespace ClinicManagement.Infrastructure.Persistence
 {
@@ -7,164 +10,108 @@ namespace ClinicManagement.Infrastructure.Persistence
     {
         public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
+        // ================= DbSets =================
         public DbSet<Role> Roles => Set<Role>();
-        public DbSet<Doctor> Doctors => Set<Doctor>();
+        public DbSet<Permission> Permissions => Set<Permission>();
         public DbSet<Patient> Patients => Set<Patient>();
-        public DbSet<Staff> Staffs => Set<Staff>();
-        public DbSet<Exam> Exams => Set<Exam>();
+        public DbSet<Employee> Employees => Set<Employee>();
         public DbSet<DoctorSchedule> DoctorSchedules => Set<DoctorSchedule>();
-        public DbSet<Appointment> Appointments => Set<Appointment>();
         public DbSet<Department> Departments => Set<Department>();
         public DbSet<DoctorDepartment> DoctorDepartments => Set<DoctorDepartment>();
-        public DbSet<Admin> Admins => Set<Admin>();
+        public DbSet<Exam> Exams => Set<Exam>();
+        public DbSet<Appointment> Appointments => Set<Appointment>();
+
         protected override void OnModelCreating(ModelBuilder b)
         {
             base.OnModelCreating(b);
 
-            // ===== Role
+            // ================= Role =================
             b.Entity<Role>(e =>
             {
                 e.HasKey(x => x.RoleId);
-                e.Property(x => x.Name).HasMaxLength(20).IsRequired();
                 e.HasIndex(x => x.Name).IsUnique();
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.HasData(
-                    new Role { RoleId = 1, Name = "Admin", IsActive = true },
-                    new Role { RoleId = 2, Name = "Staff", IsActive = true },
-                    new Role { RoleId = 3, Name = "Doctor", IsActive = true },
-                    new Role { RoleId = 4, Name = "Patient", IsActive = true },
-                    new Role { RoleId = 5, Name = "Staff_Doctor", IsActive = true },
-                    new Role { RoleId = 6, Name = "Staff_Patient", IsActive = true }
-                );
+
+                // Many-to-Many Role <-> Permission
+                e.HasMany(r => r.Permissions)
+                 .WithMany(p => p.Roles)
+                 .UsingEntity<Dictionary<string, object>>(
+                    "RolePermission",
+                    j => j.HasOne<Permission>().WithMany().HasForeignKey("PermissionId").OnDelete(DeleteBehavior.Cascade),
+                    j => j.HasOne<Role>().WithMany().HasForeignKey("RoleId").OnDelete(DeleteBehavior.Cascade),
+                    j =>
+                    {
+                        j.HasKey("RoleId", "PermissionId");
+                        j.ToTable("RolePermissions");
+                    });
             });
 
-            // ===== Doctor
-            b.Entity<Doctor>(e =>
+            // ================= Permission =================
+            b.Entity<Permission>(e =>
             {
-                e.HasKey(x => x.DoctorId);
-                e.HasIndex(x => x.Email).IsUnique();
-                e.Property(x => x.Email).HasMaxLength(200).IsRequired();
-                e.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired();
-                e.Property(x => x.Phone).HasMaxLength(50).IsRequired();
-                e.Property(x => x.Name).HasMaxLength(200).IsRequired();
-                e.Property(x => x.Address).HasMaxLength(300);
-                e.Property(x => x.Specialization).HasMaxLength(200);
-                e.Property(x => x.Image).HasMaxLength(500);
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.HasOne(x => x.Role).WithMany(r => r.Doctors).HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.SetNull);
+                e.HasKey(x => x.PermissionId);
+                e.HasIndex(x => x.Name).IsUnique();
             });
 
-            // ===== Patient
+            // ================= Patient =================
             b.Entity<Patient>(e =>
             {
-                e.HasKey(x => x.PatientId);
+                e.HasKey(x => x.PatientUserId);
                 e.HasIndex(x => x.Email).IsUnique();
-                e.Property(x => x.Email).HasMaxLength(200).IsRequired();
-                e.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired();
-                e.Property(x => x.Phone).HasMaxLength(50).IsRequired();
-                e.Property(x => x.Name).HasMaxLength(200).IsRequired();
-                e.Property(x => x.Address).HasMaxLength(300);
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.HasOne(x => x.Role).WithMany(r => r.Patients).HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.SetNull);
-            });
-
-            // ===== Staff
-            b.Entity<Staff>(e =>
-            {
-                e.HasKey(x => x.StaffId);
-                e.HasIndex(x => x.Email).IsUnique();
-                e.Property(x => x.Email).HasMaxLength(200).IsRequired();
-                e.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired();
-                e.Property(x => x.Name).HasMaxLength(200).IsRequired();
-                e.Property(x => x.Phone).HasMaxLength(50);
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.HasOne(x => x.Role).WithMany(r => r.Staffs).HasForeignKey(x => x.RoleId).OnDelete(DeleteBehavior.SetNull);
-
-                // Seed tài khoản admin mặc định 
-           
-            });
-            b.Entity<Admin>(e =>
-            {
-                e.HasKey(x => x.AdminId);
-                e.HasIndex(x => x.Email).IsUnique();
-                e.Property(x => x.Email).HasMaxLength(200).IsRequired();
-                e.Property(x => x.PasswordHash).HasMaxLength(500);
-                e.Property(x => x.RefreshToken).HasMaxLength(500);
-                e.Property(x => x.RefreshTokenExpiry).HasColumnType("datetime2");
-                e.Property(x => x.LastLoginAt).HasColumnType("datetime2");
                 e.Property(x => x.IsActive).HasDefaultValue(true);
-                e.Property(x => x.FullName).HasMaxLength(200).IsRequired();
-                e.Property(x => x.Phone).HasMaxLength(50);
 
-                e.HasData(new Admin
-                {
-                    AdminId = 1,
-                    FullName = "System Administrator",
-                    Email = "admin@gmail.com",
-                    Phone = "19001898",
-                    PasswordHash = "$2a$11$ZNwXzHwf1rJUwxCZ27ygm.QkEItTRnOA.Rw3zuIOOMSp3tM.zhI.q",
-                    IsActive = true
-                });
+                e.HasMany(x => x.Appointments)
+                 .WithOne(a => a.Patient)
+                 .HasForeignKey(a => a.PatientId)
+                 .OnDelete(DeleteBehavior.Restrict);
             });
-            // ===== Exam
-            b.Entity<Exam>(e =>
+
+            // ================= Employee =================
+            b.Entity<Employee>(e =>
             {
-                e.HasKey(x => x.ExamId);
-                e.Property(x => x.Examination).HasMaxLength(200).IsRequired();
-                e.Property(x => x.Price).HasColumnType("decimal(18,2)");
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.HasOne(x => x.Department)
-                 .WithMany(d => d.Exams)
-                 .HasForeignKey(x => x.DepartmentId)
-                 .OnDelete(DeleteBehavior.NoAction);
+                e.HasKey(x => x.EmployeeUserId);
+                e.HasIndex(x => x.Email).IsUnique();
+                e.Property(x => x.IsActive).HasDefaultValue(true);
+
+                // Many-to-Many Employee <-> Role
+                e.HasMany(emp => emp.Roles)
+                 .WithMany(role => role.Employees)
+                 .UsingEntity<Dictionary<string, object>>(
+                    "EmployeeRole",
+                    j => j.HasOne<Role>().WithMany().HasForeignKey("RoleId").OnDelete(DeleteBehavior.Cascade),
+                    j => j.HasOne<Employee>().WithMany().HasForeignKey("EmployeeId").OnDelete(DeleteBehavior.Cascade),
+                    j =>
+                    {
+                        j.HasKey("EmployeeId", "RoleId");
+                        j.ToTable("EmployeeRoles");
+                    });
+
+                // Lịch bác sĩ
+                e.HasMany(x => x.Schedules)
+                 .WithOne(s => s.Doctor)
+                 .HasForeignKey(s => s.DoctorId)
+                 .OnDelete(DeleteBehavior.Cascade);
             });
 
-            // ===== DoctorSchedule
-            b.Entity<DoctorSchedule>(e =>
-            {
-                e.HasKey(x => x.ScheduleId);
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.HasOne(s => s.Doctor).WithMany(d => d.Schedules).HasForeignKey(s => s.DoctorId);
-                e.HasOne(s => s.CreatedByStaff).WithMany().HasForeignKey(s => s.CreatedByStaffId).OnDelete(DeleteBehavior.NoAction);
-                e.HasCheckConstraint("CK_Sched_Time", "EndTime > StartTime");
-                e.HasIndex(x => new { x.DoctorId, x.StartTime }).HasDatabaseName("IX_Schedule_DoctorTime");
-            });
-
-            // ===== Department
+            // ================= Department =================
             b.Entity<Department>(e =>
             {
                 e.HasKey(x => x.DepartmentId);
-                e.Property(x => x.Code).HasMaxLength(50).IsRequired();
-                e.Property(x => x.Name).HasMaxLength(200).IsRequired();
-                e.Property(x => x.Description).HasMaxLength(500);
                 e.HasIndex(x => x.Code).IsUnique();
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.HasData(
-                    new Department { DepartmentId = 1, Code = "CARD", Name = "Cardiology", Description = "Khoa Tim mạch", IsActive = true },
-                    new Department { DepartmentId = 2, Code = "DERM", Name = "Dermatology", Description = "Khoa Da liễu", IsActive = true },
-                    new Department { DepartmentId = 3, Code = "NEUR", Name = "Neurology", Description = "Khoa Thần kinh", IsActive = true },
-                    new Department { DepartmentId = 4, Code = "PED", Name = "Pediatrics", Description = "Khoa Nhi", IsActive = true },
-                    new Department { DepartmentId = 5, Code = "ORTH", Name = "Orthopedics", Description = "Khoa Chấn thương chỉnh hình", IsActive = true }
-                );
+                e.Property(x => x.IsActive).HasDefaultValue(true);
+
+                e.HasMany(d => d.Exams)
+                 .WithOne(e => e.Department)
+                 .HasForeignKey(e => e.DepartmentId)
+                 .OnDelete(DeleteBehavior.SetNull);
             });
 
-            // ===== DoctorDepartment
+            // ================= DoctorDepartment =================
             b.Entity<DoctorDepartment>(e =>
             {
-                e.HasKey(x => new { x.DoctorId, x.DepartmentId });
-                e.Property(x => x.IsPrimary).HasDefaultValue(false);
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+                e.HasKey(x => x.DoctorDepartmentId);
 
                 e.HasOne(x => x.Doctor)
-                 .WithMany(d => d.DoctorDepartments)
+                 .WithMany()
                  .HasForeignKey(x => x.DoctorId)
                  .OnDelete(DeleteBehavior.Cascade);
 
@@ -173,30 +120,66 @@ namespace ClinicManagement.Infrastructure.Persistence
                  .HasForeignKey(x => x.DepartmentId)
                  .OnDelete(DeleteBehavior.Cascade);
 
+                // Bác sĩ chỉ có 1 khoa chính
                 e.HasIndex(x => x.DoctorId)
                  .IsUnique()
                  .HasFilter("[IsPrimary] = 1")
                  .HasDatabaseName("UX_DoctorDepartments_Primary");
-
-                e.HasIndex(x => x.DepartmentId).HasDatabaseName("IX_DocDept_Department");
             });
 
-            // ===== Appointment
+            // ================= Exam =================
+            b.Entity<Exam>(e =>
+            {
+                e.HasKey(x => x.ExamId);
+                e.Property(x => x.IsActive).HasDefaultValue(true);
+            });
+
+            // ================= DoctorSchedule =================
+            b.Entity<DoctorSchedule>(e =>
+            {
+                e.HasKey(x => x.ScheduleId);
+                e.Property(x => x.IsActive).HasDefaultValue(true);
+
+                e.HasOne(x => x.CreatedBy)
+                 .WithMany()
+                 .HasForeignKey(x => x.CreatedById)
+                 .OnDelete(DeleteBehavior.SetNull);
+
+                e.HasCheckConstraint("CK_Schedule_Time", "[EndTime] > [StartTime]");
+            });
+
+            // ================= Appointment =================
             b.Entity<Appointment>(e =>
             {
                 e.HasKey(x => x.AppointmentId);
-                e.Property(x => x.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.Property(x => x.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-                e.Property(x => x.Status).HasMaxLength(20).HasDefaultValue("pending");
-                e.HasOne(a => a.Schedule).WithMany().HasForeignKey(a => a.ScheduleId).OnDelete(DeleteBehavior.NoAction);
-                e.HasOne(a => a.Doctor).WithMany(d => d.Appointments).HasForeignKey(a => a.DoctorId).OnDelete(DeleteBehavior.NoAction);
-                e.HasOne(a => a.Patient).WithMany(p => p.Appointments).HasForeignKey(a => a.PatientId);
-                e.HasOne(a => a.Exam).WithMany().HasForeignKey(a => a.ExamId).OnDelete(DeleteBehavior.NoAction);
-                e.HasOne(a => a.ApprovedByDoctor).WithMany().HasForeignKey(a => a.ApprovedByDoctorId).OnDelete(DeleteBehavior.NoAction);
-                e.HasCheckConstraint("CK_App_Status",
-                    "Status in ('pending','approved','rejected','cancelled','completed')");
-                e.HasIndex(a => new { a.DoctorId, a.AppointmentDate }).HasDatabaseName("IX_App_Doctor_Date");
-                e.HasIndex(a => a.PatientId).HasDatabaseName("IX_App_Patient");
+                e.Property(x => x.Status).HasConversion<string>().HasMaxLength(30);
+
+                e.HasOne(a => a.Patient)
+                 .WithMany(p => p.Appointments)
+                 .HasForeignKey(a => a.PatientId)
+                 .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(a => a.Doctor)
+                 .WithMany()
+                 .HasForeignKey(a => a.DoctorId)
+                 .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(a => a.CreatedBy)
+                 .WithMany()
+                 .HasForeignKey(a => a.CreatedById)
+                 .OnDelete(DeleteBehavior.SetNull);
+
+                e.HasOne(a => a.ApprovedBy)
+                 .WithMany()
+                 .HasForeignKey(a => a.ApprovedById)
+                 .OnDelete(DeleteBehavior.SetNull);
+
+                e.HasOne(a => a.Exam)
+                 .WithMany()
+                 .HasForeignKey(a => a.ExamId)
+                 .OnDelete(DeleteBehavior.SetNull);
+
+                e.HasCheckConstraint("CK_Appointment_Time", "[EndTime] > [StartTime]");
             });
         }
     }

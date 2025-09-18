@@ -1,6 +1,6 @@
 ﻿
 using ClinicManagement.Infrastructure.Persistence;
-using ClinicManagement.Infrastructure.Services.Auth;
+
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,7 +16,7 @@ namespace ClinicManagement.Infrastructure
                 opt.UseSqlServer(config.GetConnectionString("DefaultConnection")));
 
             // Auth Service
-            services.AddScoped<IAuthService, AuthService>();
+            //services.AddScoped<IAuthService, AuthService>();
 
             //  sau này nếu có thêm service khác thì đăng ký tiếp ở đây
   
