@@ -1,38 +1,45 @@
 ﻿using ClinicManagement.Domain.Entity.Common;
+
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ClinicManagement.Domain.Entity
 {
+    public enum AppointmentStatus
+    {
+        Pending,
+        Approved,
+        Rejected,
+        Cancelled,
+        Completed
+    }
+
     public class Appointment : BaseEntity
     {
         public int AppointmentId { get; set; }
 
-        public int? ScheduleId { get; set; }
-        public DoctorSchedule? Schedule { get; set; }
+        public DateTime StartTime { get; set; }
+        public DateTime EndTime { get; set; }
 
-        public int? DoctorId { get; set; }
-        public Doctor? Doctor { get; set; }
+        public AppointmentStatus Status { get; set; } = AppointmentStatus.Pending;
+        public string? Note { get; set; }
 
+        // Patient
         public int PatientId { get; set; }
         public Patient Patient { get; set; } = default!;
 
+        // Doctor (Employee)
+        public int DoctorId { get; set; }
+        public Employee Doctor { get; set; } = default!;
+
+        // Staff tạo/duyệt
+        public int? CreatedById { get; set; }
+        public Employee? CreatedBy { get; set; }
+
+        public int? ApprovedById { get; set; }
+        public Employee? ApprovedBy { get; set; }
+
+        // Dịch vụ khám (optional)
         public int? ExamId { get; set; }
         public Exam? Exam { get; set; }
-
-        public DateTime? AppointmentDate { get; set; }
-        public string? Symptoms { get; set; }
-        public string? Diagnosis { get; set; }
-
-        public string Status { get; set; } = "pending";
-
-        public int? ApprovedByDoctorId { get; set; }
-        public Doctor? ApprovedByDoctor { get; set; }
-        public int? CancelledByAccountId { get; set; }
-        public Account? CancelledByAccount { get; set; }
-
     }
 }

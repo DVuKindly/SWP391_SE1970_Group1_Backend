@@ -1,16 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.ComponentModel.DataAnnotations;
 
 namespace ClinicManagement.Domain.Entity.Common
 {
     public abstract class BaseEntity
     {
-        public int Id { get; set; }             
-        public bool IsActive { get; set; } = true;
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+        public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+        public DateTime? UpdatedAtUtc { get; set; }
+
+        // Optimistic concurrency (tùy chọn)
+        [Timestamp]
+        public byte[]? RowVersion { get; set; }
     }
 }
