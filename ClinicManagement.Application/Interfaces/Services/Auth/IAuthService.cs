@@ -19,7 +19,11 @@ namespace ClinicManagement.Application.Interfaces.Services.Auth
 
 
         Task<ServiceResult<AuthResponse>> RegisterStaffAsync(RegisterEmployeeRequest req, int createdById, CancellationToken ct = default);
-        Task<ServiceResult<AuthResponse>> RegisterDoctorAsync(RegisterEmployeeRequest req, int createdById, CancellationToken ct = default);
+        Task<ServiceResult<AuthResponse>> RegisterDoctorAsync(
+     CreateDoctorRequest req,
+     int createdById,
+     CancellationToken ct = default
+ );
 
 
     }

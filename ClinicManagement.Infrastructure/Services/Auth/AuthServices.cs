@@ -31,7 +31,6 @@ namespace ClinicManagement.Infrastructure.Services.Auth
         // 1 login
         public async Task<ServiceResult<AuthResponse>> LoginPatientAsync(LoginRequest req, CancellationToken ct = default)
         {
-          
             var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
             var pwd = (req.Password ?? string.Empty);
 
@@ -41,7 +40,6 @@ namespace ClinicManagement.Infrastructure.Services.Auth
             if (!new EmailAddressAttribute().IsValid(email))
                 return ServiceResult<AuthResponse>.Fail("Email không đúng định dạng.");
 
-         
             var patient = await _ctx.Patients.FirstOrDefaultAsync(p => p.Email == email, ct);
             if (patient is null)
                 return ServiceResult<AuthResponse>.Fail("Tài khoản bệnh nhân không tồn tại.");
@@ -49,28 +47,24 @@ namespace ClinicManagement.Infrastructure.Services.Auth
             if (!patient.IsActive)
                 return ServiceResult<AuthResponse>.Fail("Tài khoản đã bị khóa. Vui lòng liên hệ hỗ trợ.");
 
-          
             if (!BCrypt.Net.BCrypt.Verify(pwd, patient.PasswordHash))
                 return ServiceResult<AuthResponse>.Fail("Mật khẩu không chính xác.");
 
-           
             var claims = new List<Claim>
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, patient.PatientUserId.ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, patient.Email),
-                new Claim(ClaimTypes.Name, patient.FullName),
-                new Claim(ClaimTypes.Role, "Patient")
-            };
+    {
+        new Claim("sub", patient.PatientUserId.ToString()),
+        new Claim(ClaimTypes.Email, patient.Email),
+        new Claim(ClaimTypes.Name, patient.FullName),
+        new Claim(ClaimTypes.Role, "Patient")
+    };
 
             var (accessToken, refreshToken) = GenerateTokens(claims);
 
-       
             patient.RefreshToken = refreshToken;
             patient.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
             patient.LastLoginAtUtc = DateTime.UtcNow;
             await _ctx.SaveChangesAsync(ct);
 
-            // 6) Return
             var payload = new AuthResponse
             {
                 UserId = patient.PatientUserId,
@@ -83,20 +77,17 @@ namespace ClinicManagement.Infrastructure.Services.Auth
             return ServiceResult<AuthResponse>.Ok(payload, "Đăng nhập bệnh nhân thành công.");
         }
 
+
         //2 register
         public async Task<ServiceResult<AuthResponse>> RegisterPatientAsync(RegisterPatientRequest req, CancellationToken ct = default)
         {
             var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
 
-            // Kiểm tra email đã tồn tại
-            var existed = await _ctx.Patients.AnyAsync(p => p.Email == email, ct);
-            if (existed)
+            if (await _ctx.Patients.AnyAsync(p => p.Email == email, ct))
                 return ServiceResult<AuthResponse>.Fail("Email đã được đăng ký.");
 
- 
             var passwordHash = BCrypt.Net.BCrypt.HashPassword(req.Password);
 
-      
             var patient = new Patient
             {
                 Email = email,
@@ -112,15 +103,14 @@ namespace ClinicManagement.Infrastructure.Services.Auth
 
             var claims = new List<Claim>
     {
-        new Claim(JwtRegisteredClaimNames.Sub, patient.PatientUserId.ToString()),
-        new Claim(JwtRegisteredClaimNames.Email, patient.Email),
+        new Claim("sub", patient.PatientUserId.ToString()),
+        new Claim(ClaimTypes.Email, patient.Email),
         new Claim(ClaimTypes.Name, patient.FullName),
         new Claim(ClaimTypes.Role, "Patient")
     };
 
             var (accessToken, refreshToken) = GenerateTokens(claims);
 
-       
             patient.RefreshToken = refreshToken;
             patient.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
             patient.LastLoginAtUtc = DateTime.UtcNow;
@@ -143,11 +133,9 @@ namespace ClinicManagement.Infrastructure.Services.Auth
 
 
 
-
         // employee
         public async Task<ServiceResult<AuthResponse>> LoginEmployeeAsync(LoginRequest req, CancellationToken ct = default)
         {
-           
             var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
             var pwd = (req.Password ?? string.Empty);
 
@@ -157,7 +145,6 @@ namespace ClinicManagement.Infrastructure.Services.Auth
             if (!new EmailAddressAttribute().IsValid(email))
                 return ServiceResult<AuthResponse>.Fail("Email không đúng định dạng.");
 
-         
             var employee = await _ctx.Employees
                 .Include(e => e.EmployeeRoles).ThenInclude(er => er.Role)
                 .FirstOrDefaultAsync(e => e.Email == email, ct);
@@ -168,34 +155,29 @@ namespace ClinicManagement.Infrastructure.Services.Auth
             if (!employee.IsActive)
                 return ServiceResult<AuthResponse>.Fail("Tài khoản đã bị khóa. Vui lòng liên hệ quản trị.");
 
-        
             if (!BCrypt.Net.BCrypt.Verify(pwd, employee.PasswordHash))
                 return ServiceResult<AuthResponse>.Fail("Mật khẩu không chính xác.");
 
-           
             var roles = employee.EmployeeRoles.Select(er => er.Role.Name).Distinct().ToArray();
             if (roles.Length == 0)
-                return ServiceResult<AuthResponse>.Fail("Tài khoản chưa được gán vai trò. Vui lòng liên hệ quản trị.");
+                return ServiceResult<AuthResponse>.Fail("Tài khoản chưa được gán vai trò.");
 
-         
             var claims = new List<Claim>
-            {
-                new Claim(JwtRegisteredClaimNames.Sub, employee.EmployeeUserId.ToString()),
-                new Claim(JwtRegisteredClaimNames.Email, employee.Email),
-                new Claim(ClaimTypes.Name, employee.FullName)
-            };
+    {
+        new Claim("sub", employee.EmployeeUserId.ToString()),
+        new Claim(ClaimTypes.Email, employee.Email),
+        new Claim(ClaimTypes.Name, employee.FullName)
+    };
             foreach (var r in roles)
                 claims.Add(new Claim(ClaimTypes.Role, r));
 
             var (accessToken, refreshToken) = GenerateTokens(claims);
 
-         
             employee.RefreshToken = refreshToken;
             employee.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
             employee.LastLoginAtUtc = DateTime.UtcNow;
             await _ctx.SaveChangesAsync(ct);
 
-          
             var payload = new AuthResponse
             {
                 UserId = employee.EmployeeUserId,
@@ -254,14 +236,12 @@ namespace ClinicManagement.Infrastructure.Services.Auth
             }, "Tạo tài khoản Staff thành công.");
         }
 
-        public async Task<ServiceResult<AuthResponse>> RegisterDoctorAsync(RegisterEmployeeRequest req, int createdById, CancellationToken ct = default)
+        public async Task<ServiceResult<AuthResponse>> RegisterDoctorAsync(
+      CreateDoctorRequest req, int createdById, CancellationToken ct = default)
         {
             var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
             if (await _ctx.Employees.AnyAsync(e => e.Email == email, ct))
                 return ServiceResult<AuthResponse>.Fail("Email đã tồn tại.");
-
-            if (req.RoleName != "Doctor")
-                return ServiceResult<AuthResponse>.Fail("Staff_Doctor chỉ được tạo Doctor.");
 
             var role = await _ctx.Roles.FirstOrDefaultAsync(r => r.Name == "Doctor", ct);
             if (role is null) return ServiceResult<AuthResponse>.Fail("Role Doctor chưa được seed.");
@@ -289,14 +269,32 @@ namespace ClinicManagement.Infrastructure.Services.Auth
             };
             _ctx.EmployeeRoles.Add(empRole);
 
-            // DoctorProfile khởi tạo rỗng
+            // DoctorProfile khởi tạo từ request
             var profile = new DoctorProfile
             {
                 EmployeeId = employee.EmployeeUserId,
-                Title = "Bác sĩ",
+                Title = req.Title ?? "Bác sĩ",
+                Biography = req.Biography,
+                Degree = req.Degree,
+                Education = req.Education,
+                ExperienceYears = req.ExperienceYears,
+                Certifications = req.Certifications,
                 CreatedAtUtc = DateTime.UtcNow
             };
             _ctx.DoctorProfiles.Add(profile);
+
+            // Mapping Departments
+            foreach (var dep in req.Departments)
+            {
+                var doctorDep = new DoctorDepartment
+                {
+                    DoctorId = employee.EmployeeUserId,
+                    DepartmentId = dep.DepartmentId,
+                    IsPrimary = dep.IsPrimary,
+                    CreatedAtUtc = DateTime.UtcNow
+                };
+                _ctx.DoctorDepartments.Add(doctorDep);
+            }
 
             await _ctx.SaveChangesAsync(ct);
 
@@ -311,18 +309,22 @@ namespace ClinicManagement.Infrastructure.Services.Auth
 
 
 
+
         // token
         private (string accessToken, string refreshToken) GenerateTokens(IEnumerable<Claim> claims)
         {
             var jwt = _cfg.GetSection("Jwt");
+
             var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwt["Key"]!));
             var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+
+            var expires = DateTime.UtcNow.AddMinutes(int.Parse(jwt["AccessTokenMinutes"] ?? "60"));
 
             var token = new JwtSecurityToken(
                 issuer: jwt["Issuer"],
                 audience: jwt["Audience"],
                 claims: claims,
-                expires: DateTime.UtcNow.AddMinutes(30),
+                expires: expires,
                 signingCredentials: creds
             );
 
@@ -330,5 +332,6 @@ namespace ClinicManagement.Infrastructure.Services.Auth
             var refreshToken = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
             return (accessToken, refreshToken);
         }
+
     }
 }

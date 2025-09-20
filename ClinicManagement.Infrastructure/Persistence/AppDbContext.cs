@@ -171,6 +171,35 @@ namespace ClinicManagement.Infrastructure.Persistence
                 .HasForeignKey(a => a.ExamId)
                 .OnDelete(DeleteBehavior.SetNull);
 
+            modelBuilder.Entity<Department>().HasData(
+    new Department
+    {
+        DepartmentId = 1,
+        Code = "CARD",
+        Name = "Cardiology",
+        Description = "Khoa Tim mạch",
+        IsActive = true,
+        CreatedAtUtc = DateTime.UtcNow
+    },
+    new Department
+    {
+        DepartmentId = 2,
+        Code = "NEUR",
+        Name = "Neurology",
+        Description = "Khoa Thần kinh",
+        IsActive = true,
+        CreatedAtUtc = DateTime.UtcNow
+    },
+    new Department
+    {
+        DepartmentId = 3,
+        Code = "DERM",
+        Name = "Dermatology",
+        Description = "Khoa Da liễu",
+        IsActive = true,
+        CreatedAtUtc = DateTime.UtcNow
+    }
+);
 
             modelBuilder.Entity<DoctorSchedule>()
                 .HasKey(ds => ds.ScheduleId);
