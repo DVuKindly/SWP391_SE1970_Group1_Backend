@@ -128,7 +128,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                         {
                             DepartmentId = 1,
                             Code = "CARD",
-                            CreatedAtUtc = new DateTime(2025, 9, 20, 4, 32, 7, 72, DateTimeKind.Utc).AddTicks(6689),
+                            CreatedAtUtc = new DateTime(2025, 9, 20, 13, 9, 38, 916, DateTimeKind.Utc).AddTicks(9382),
                             Description = "Khoa Tim mạch",
                             IsActive = true,
                             Name = "Cardiology"
@@ -137,7 +137,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                         {
                             DepartmentId = 2,
                             Code = "NEUR",
-                            CreatedAtUtc = new DateTime(2025, 9, 20, 4, 32, 7, 72, DateTimeKind.Utc).AddTicks(6692),
+                            CreatedAtUtc = new DateTime(2025, 9, 20, 13, 9, 38, 916, DateTimeKind.Utc).AddTicks(9385),
                             Description = "Khoa Thần kinh",
                             IsActive = true,
                             Name = "Neurology"
@@ -146,7 +146,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                         {
                             DepartmentId = 3,
                             Code = "DERM",
-                            CreatedAtUtc = new DateTime(2025, 9, 20, 4, 32, 7, 72, DateTimeKind.Utc).AddTicks(6694),
+                            CreatedAtUtc = new DateTime(2025, 9, 20, 13, 9, 38, 916, DateTimeKind.Utc).AddTicks(9388),
                             Description = "Khoa Da liễu",
                             IsActive = true,
                             Name = "Dermatology"
@@ -363,7 +363,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                         new
                         {
                             EmployeeUserId = 1,
-                            CreatedAtUtc = new DateTime(2025, 9, 20, 4, 32, 7, 72, DateTimeKind.Utc).AddTicks(4754),
+                            CreatedAtUtc = new DateTime(2025, 9, 20, 13, 9, 38, 916, DateTimeKind.Utc).AddTicks(6015),
                             Email = "admin@gmail.com",
                             FullName = "Super Admin",
                             IsActive = true,
@@ -408,8 +408,8 @@ namespace ClinicManagement.Infrastructure.Migrations
                         {
                             EmployeeId = 1,
                             RoleId = 1,
-                            AssignedAtUtc = new DateTime(2025, 9, 20, 4, 32, 7, 72, DateTimeKind.Utc).AddTicks(4955),
-                            CreatedAtUtc = new DateTime(2025, 9, 20, 4, 32, 7, 72, DateTimeKind.Utc).AddTicks(4953)
+                            AssignedAtUtc = new DateTime(2025, 9, 20, 13, 9, 38, 916, DateTimeKind.Utc).AddTicks(6386),
+                            CreatedAtUtc = new DateTime(2025, 9, 20, 13, 9, 38, 916, DateTimeKind.Utc).AddTicks(6383)
                         });
                 });
 
@@ -641,25 +641,25 @@ namespace ClinicManagement.Infrastructure.Migrations
                         new
                         {
                             RoleId = 1,
-                            CreatedAtUtc = new DateTime(2025, 9, 20, 4, 32, 7, 74, DateTimeKind.Utc).AddTicks(8160),
+                            CreatedAtUtc = new DateTime(2025, 9, 20, 13, 9, 38, 919, DateTimeKind.Utc).AddTicks(3611),
                             Name = "Admin"
                         },
                         new
                         {
                             RoleId = 2,
-                            CreatedAtUtc = new DateTime(2025, 9, 20, 4, 32, 7, 74, DateTimeKind.Utc).AddTicks(8165),
+                            CreatedAtUtc = new DateTime(2025, 9, 20, 13, 9, 38, 919, DateTimeKind.Utc).AddTicks(3615),
                             Name = "Staff_Patient"
                         },
                         new
                         {
                             RoleId = 3,
-                            CreatedAtUtc = new DateTime(2025, 9, 20, 4, 32, 7, 74, DateTimeKind.Utc).AddTicks(8166),
+                            CreatedAtUtc = new DateTime(2025, 9, 20, 13, 9, 38, 919, DateTimeKind.Utc).AddTicks(3616),
                             Name = "Staff_Doctor"
                         },
                         new
                         {
                             RoleId = 4,
-                            CreatedAtUtc = new DateTime(2025, 9, 20, 4, 32, 7, 74, DateTimeKind.Utc).AddTicks(8167),
+                            CreatedAtUtc = new DateTime(2025, 9, 20, 13, 9, 38, 919, DateTimeKind.Utc).AddTicks(3617),
                             Name = "Doctor"
                         });
                 });
