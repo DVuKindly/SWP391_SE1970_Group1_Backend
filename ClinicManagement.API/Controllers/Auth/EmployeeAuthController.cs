@@ -36,11 +36,12 @@ namespace ClinicManagement.API.Controllers.Auth
         }
         [Authorize(Roles = "Staff_Doctor")]
         [HttpPost("create-doctor")]
-        public async Task<IActionResult> CreateDoctor([FromBody] RegisterEmployeeRequest req, CancellationToken ct)
+        public async Task<IActionResult> CreateDoctor([FromBody] CreateDoctorRequest req, CancellationToken ct)
         {
             var userId = int.Parse(User.FindFirstValue(ClaimTypes.NameIdentifier)!);
             var result = await _auth.RegisterDoctorAsync(req, userId, ct);
             return result.Success ? Ok(result) : BadRequest(result);
         }
+
     }
 }

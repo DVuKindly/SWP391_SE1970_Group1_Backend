@@ -1,8 +1,10 @@
 ﻿
 using ClinicManagement.Application.Interfaces.Services.Auth;
+using ClinicManagement.Application.Interfaces.Services.Dashboard;
 using ClinicManagement.Application.Interfaces.Services.Registration;
 using ClinicManagement.Infrastructure.Persistence;
 using ClinicManagement.Infrastructure.Services.Auth;
+using ClinicManagement.Infrastructure.Services.Dashboard;
 using ClinicManagement.Infrastructure.Services.Registration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -22,8 +24,9 @@ namespace ClinicManagement.Infrastructure
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IRegistrationService, RegistrationService>();
             //  sau này nếu có thêm service khác thì đăng ký tiếp ở đây
-
-
+            services.AddScoped<IAdminAccountService, AdminAccountService>();
+            services.AddScoped<IStaffAccountService, StaffAccountService>();
+            services.AddScoped<IDoctorAccountService, DoctorAccountService>();
             return services;
         }
     }
