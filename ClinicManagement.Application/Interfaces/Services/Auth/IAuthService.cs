@@ -25,6 +25,12 @@ namespace ClinicManagement.Application.Interfaces.Services.Auth
      CancellationToken ct = default
  );
 
+        //tạo account 2-3 role
+        Task<ServiceResult<AuthResponse>> CreateAccountWithRolesAsync(
+    CreateAccountRequest req,
+    int createdById,
+    CancellationToken ct = default);
+
 
     }
 }

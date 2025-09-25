@@ -222,5 +222,37 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                 })
                 .ToListAsync(ct);
         }
+
+
+        public async Task<bool> UpdateProfileAsync(int accountId, UpdateProfileDtoAdmin dto, CancellationToken ct)
+        {
+            // 1. Tìm trong Employees trước
+            var emp = await _ctx.Employees.FindAsync(new object[] { accountId }, ct);
+            if (emp != null)
+            {
+                emp.Email = dto.Email.Trim().ToLower();
+                emp.Phone = dto.Phone.Trim();
+                emp.FullName = dto.FullName.Trim();
+                emp.UpdatedAtUtc = DateTime.UtcNow;
+                await _ctx.SaveChangesAsync(ct);
+                return true;
+            }
+
+            // 2. Nếu không có thì tìm trong Patients
+            var patient = await _ctx.Patients.FindAsync(new object[] { accountId }, ct);
+            if (patient != null)
+            {
+                patient.Email = dto.Email.Trim().ToLower();
+                patient.Phone = dto.Phone.Trim();
+                patient.FullName = dto.FullName.Trim();
+                patient.UpdatedAtUtc = DateTime.UtcNow;
+                await _ctx.SaveChangesAsync(ct);
+                return true;
+            }
+
+            return false;
+        }
+
+
     }
 }

@@ -20,7 +20,6 @@ namespace ClinicManagement.API.Controllers.Dashboard
             _service = service;
         }
 
-
         [HttpGet]
         public async Task<IActionResult> GetAccounts(
             [FromQuery] string? role,
@@ -33,7 +32,6 @@ namespace ClinicManagement.API.Controllers.Dashboard
             return Ok(result);
         }
 
-
         [HttpGet("by-email")]
         public async Task<IActionResult> GetAccountByEmail([FromQuery] string email, CancellationToken ct)
         {
@@ -41,8 +39,6 @@ namespace ClinicManagement.API.Controllers.Dashboard
             if (account == null) return NotFound();
             return Ok(account);
         }
-
-
 
         [HttpPut("{id:int}/status")]
         public async Task<IActionResult> UpdateAccountStatus(
@@ -70,9 +66,23 @@ namespace ClinicManagement.API.Controllers.Dashboard
             var roles = await _service.GetAllRolesAsync(ct);
             return Ok(roles);
         }
+
+     
+        [HttpPut("{id:int}/profile")]
+        public async Task<IActionResult> UpdateProfile(
+          int id,
+          [FromBody] UpdateProfileDtoAdmin dto,
+          CancellationToken ct)
+        {
+            var success = await _service.UpdateProfileAsync(id, dto, ct);
+            if (!success) return NotFound();
+
+            return NoContent();
+        }
+
+
     }
 
- 
     public class BulkStatusUpdateRequest
     {
         public List<int> AccountIds { get; set; } = new();

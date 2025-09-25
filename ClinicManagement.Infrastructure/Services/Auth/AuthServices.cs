@@ -333,5 +333,72 @@ namespace ClinicManagement.Infrastructure.Services.Auth
             return (accessToken, refreshToken);
         }
 
+
+
+
+
+        // tạo account 2-3 role
+
+        public async Task<ServiceResult<AuthResponse>> CreateAccountWithRolesAsync(
+    CreateAccountRequest req,
+    int createdById,
+    CancellationToken ct = default)
+        {
+            var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
+
+            // Kiểm tra email đã tồn tại chưa
+            if (await _ctx.Employees.AnyAsync(e => e.Email == email, ct))
+                return ServiceResult<AuthResponse>.Fail("Email đã tồn tại.");
+
+            if (req.RoleNames == null || req.RoleNames.Count == 0)
+                return ServiceResult<AuthResponse>.Fail("Phải chọn ít nhất 1 vai trò.");
+
+            // Lấy roles từ DB
+            var roles = await _ctx.Roles
+                .Where(r => req.RoleNames.Contains(r.Name))
+                .ToListAsync(ct);
+
+            if (roles.Count != req.RoleNames.Count)
+                return ServiceResult<AuthResponse>.Fail("Một hoặc nhiều vai trò không hợp lệ.");
+
+            // Tạo Employee
+            var hash = BCrypt.Net.BCrypt.HashPassword(req.Password);
+
+            var employee = new Employee
+            {
+                Email = email,
+                PasswordHash = hash,
+                FullName = req.FullName.Trim(),
+                Phone = req.Phone?.Trim(),
+                IsActive = true,
+                CreatedAtUtc = DateTime.UtcNow
+            };
+
+            _ctx.Employees.Add(employee);
+            await _ctx.SaveChangesAsync(ct);
+
+            // Gán roles
+            foreach (var role in roles)
+            {
+                _ctx.EmployeeRoles.Add(new EmployeeRole
+                {
+                    EmployeeId = employee.EmployeeUserId,
+                    RoleId = role.RoleId,
+                    AssignedById = createdById,
+                    AssignedAtUtc = DateTime.UtcNow
+                });
+            }
+
+            await _ctx.SaveChangesAsync(ct);
+
+            return ServiceResult<AuthResponse>.Ok(new AuthResponse
+            {
+                UserId = employee.EmployeeUserId,
+                Email = employee.Email,
+                FullName = employee.FullName,
+                Roles = roles.Select(r => r.Name).ToArray()
+            }, "Tạo tài khoản với nhiều vai trò thành công.");
+        }
+
     }
 }
