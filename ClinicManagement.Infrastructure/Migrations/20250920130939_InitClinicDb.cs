@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ClinicManagement.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitClinicD2b2 : Migration
+    public partial class InitClinicDb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -364,25 +364,35 @@ namespace ClinicManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.InsertData(
+                table: "Departments",
+                columns: new[] { "DepartmentId", "Code", "CreatedAtUtc", "Description", "IsActive", "Name", "UpdatedAtUtc" },
+                values: new object[,]
+                {
+                    { 1, "CARD", new DateTime(2025, 9, 20, 13, 9, 38, 916, DateTimeKind.Utc).AddTicks(9382), "Khoa Tim mạch", true, "Cardiology", null },
+                    { 2, "NEUR", new DateTime(2025, 9, 20, 13, 9, 38, 916, DateTimeKind.Utc).AddTicks(9385), "Khoa Thần kinh", true, "Neurology", null },
+                    { 3, "DERM", new DateTime(2025, 9, 20, 13, 9, 38, 916, DateTimeKind.Utc).AddTicks(9388), "Khoa Da liễu", true, "Dermatology", null }
+                });
+
+            migrationBuilder.InsertData(
                 table: "Employees",
                 columns: new[] { "EmployeeUserId", "CreatedAtUtc", "Email", "FullName", "Image", "IsActive", "LastLoginAtUtc", "PasswordHash", "Phone", "RefreshToken", "RefreshTokenExpiry", "UpdatedAtUtc" },
-                values: new object[] { 1, new DateTime(2025, 9, 18, 12, 31, 19, 439, DateTimeKind.Utc).AddTicks(8655), "admin@gmail.com", "Super Admin", null, true, null, "$2a$11$7Pb2XS4fRQWCvUfRhkTNJO2Qib1pTOFjWOX1SQSyIhjNN1CzfXVKC", "0123456789", null, null, null });
+                values: new object[] { 1, new DateTime(2025, 9, 20, 13, 9, 38, 916, DateTimeKind.Utc).AddTicks(6015), "admin@gmail.com", "Super Admin", null, true, null, "$2a$11$7Pb2XS4fRQWCvUfRhkTNJO2Qib1pTOFjWOX1SQSyIhjNN1CzfXVKC", "0123456789", null, null, null });
 
             migrationBuilder.InsertData(
                 table: "Roles",
                 columns: new[] { "RoleId", "CreatedAtUtc", "Description", "Name", "UpdatedAtUtc" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 9, 18, 12, 31, 19, 441, DateTimeKind.Utc).AddTicks(2456), null, "Admin", null },
-                    { 2, new DateTime(2025, 9, 18, 12, 31, 19, 441, DateTimeKind.Utc).AddTicks(2458), null, "Staff_Patient", null },
-                    { 3, new DateTime(2025, 9, 18, 12, 31, 19, 441, DateTimeKind.Utc).AddTicks(2460), null, "Staff_Doctor", null },
-                    { 4, new DateTime(2025, 9, 18, 12, 31, 19, 441, DateTimeKind.Utc).AddTicks(2462), null, "Doctor", null }
+                    { 1, new DateTime(2025, 9, 20, 13, 9, 38, 919, DateTimeKind.Utc).AddTicks(3611), null, "Admin", null },
+                    { 2, new DateTime(2025, 9, 20, 13, 9, 38, 919, DateTimeKind.Utc).AddTicks(3615), null, "Staff_Patient", null },
+                    { 3, new DateTime(2025, 9, 20, 13, 9, 38, 919, DateTimeKind.Utc).AddTicks(3616), null, "Staff_Doctor", null },
+                    { 4, new DateTime(2025, 9, 20, 13, 9, 38, 919, DateTimeKind.Utc).AddTicks(3617), null, "Doctor", null }
                 });
 
             migrationBuilder.InsertData(
                 table: "EmployeeRoles",
                 columns: new[] { "EmployeeId", "RoleId", "AssignedAtUtc", "AssignedById", "CreatedAtUtc", "UpdatedAtUtc" },
-                values: new object[] { 1, 1, new DateTime(2025, 9, 18, 12, 31, 19, 439, DateTimeKind.Utc).AddTicks(8777), null, new DateTime(2025, 9, 18, 12, 31, 19, 439, DateTimeKind.Utc).AddTicks(8774), null });
+                values: new object[] { 1, 1, new DateTime(2025, 9, 20, 13, 9, 38, 916, DateTimeKind.Utc).AddTicks(6386), null, new DateTime(2025, 9, 20, 13, 9, 38, 916, DateTimeKind.Utc).AddTicks(6383), null });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Appointments_ApprovedById",

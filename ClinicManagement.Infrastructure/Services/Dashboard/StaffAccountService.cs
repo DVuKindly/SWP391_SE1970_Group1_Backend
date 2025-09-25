@@ -34,7 +34,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                 {
                     Id = p.PatientUserId,
                     Role = "Patient",
-                    FullName = p.FullName,
+                    Name = p.FullName,
                     Email = p.Email,
                     Phone = p.Phone,
                     IsActive = p.IsActive
@@ -50,7 +50,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                         {
                             Id = e.EmployeeUserId,
                             Role = r.Name,
-                            FullName = e.FullName,
+                            Name = e.FullName,
                             Email = e.Email,
                             Phone = e.Phone,
                             IsActive = e.IsActive
@@ -63,7 +63,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                 query = query.Where(x =>
                     x.Email.Contains(keyword) ||
                     x.Phone.Contains(keyword) ||
-                    x.FullName.Contains(keyword));
+                    x.Name.Contains(keyword));
             }
 
             var total = await query.CountAsync(ct);
@@ -96,7 +96,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                     {
                         Id = p.PatientUserId,
                         Role = "Patient",
-                        FullName = p.FullName,
+                        Name = p.FullName,
                         Email = p.Email,
                         Phone = p.Phone,
                         IsActive = p.IsActive
@@ -112,7 +112,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                               {
                                   Id = e.EmployeeUserId,
                                   Role = r.Name,
-                                  FullName = e.FullName,
+                                  Name = e.FullName,
                                   Email = e.Email,
                                   Phone = e.Phone,
                                   IsActive = e.IsActive
@@ -251,7 +251,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                     {
                         Id = p.PatientUserId,
                         Role = "Patient",
-                        FullName = p.FullName,
+                        Name = p.FullName,
                         Email = p.Email,
                         Phone = p.Phone,
                         IsActive = p.IsActive
@@ -267,7 +267,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                               {
                                   Id = e.EmployeeUserId,
                                   Role = r.Name,
-                                  FullName = e.FullName,
+                                  Name = e.FullName,
                                   Email = e.Email,
                                   Phone = e.Phone,
                                   IsActive = e.IsActive
