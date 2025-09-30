@@ -87,7 +87,7 @@ namespace ClinicManagement.API
                         RoleClaimType = ClaimTypes.Role
                     };
                 })
-                // Google OAuth2
+                // Google OAuth 
                 .AddCookie()
                 .AddGoogle(options =>
                 {
