@@ -34,6 +34,22 @@ namespace ClinicManagement.API.Controllers.Auth
             var result = await _auth.RegisterStaffAsync(req, userId, ct);
             return result.Success ? Ok(result) : BadRequest(result);
         }
+
+
+
+        [Authorize(Roles = "Admin")]
+        [HttpPost("create-account-manyRole")]
+        public async Task<IActionResult> CreateAccount([FromBody] CreateAccountRequest req, CancellationToken ct)
+        {
+            // Lấy ID của admin đang login từ claim "sub"
+            var sub = User.FindFirst("sub")?.Value ?? "0";
+            int createdById = int.TryParse(sub, out var id) ? id : 0;
+
+            var result = await _auth.CreateAccountWithRolesAsync(req, createdById, ct);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
+
         [Authorize(Roles = "Staff_Doctor")]
         [HttpPost("create-doctor")]
         public async Task<IActionResult> CreateDoctor([FromBody] CreateDoctorRequest req, CancellationToken ct)
