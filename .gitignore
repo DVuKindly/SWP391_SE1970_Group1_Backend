@@ -1,9 +1,9 @@
 # Visual Studio
 .vs/
-*.vsidx
-*.vscode/
+.vscode/
 *.user
 *.suo
+*.vsidx
 
 # Build outputs
 bin/
@@ -11,5 +11,24 @@ obj/
 Debug/
 Release/
 
-# Others
+# Logs
 *.log
+
+# Environment files
+.env
+.env.*
+!*.env.example
+
+# NuGet
+*.nupkg
+*.snupkg
+*.nuspec
+packages/
+project.lock.json
+project.fragment.lock.json
+
+# Others
+*.tmp
+*.bak
+*.swp
+*.DS_Store

@@ -32,5 +32,10 @@ namespace ClinicManagement.Application.Interfaces.Services.Auth
     CancellationToken ct = default);
 
 
+
+        //google login 
+        // google login
+        Task<ServiceResult<AuthResponse>> GoogleLoginPatientAsync(GoogleLoginRequest req, CancellationToken ct = default);
+
     }
 }
