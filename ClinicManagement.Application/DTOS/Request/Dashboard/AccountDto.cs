@@ -1,18 +1,19 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ClinicManagement.Application.DTOS.Request.Dashboard
 {
     public class AccountDto
     {
         public int Id { get; set; }
-        public string Role { get; set; } = default!;
-        public string Name { get; set; } = default!;
-        public string Email { get; set; } = default!;
-        public string Phone { get; set; } = default!;
+
+    public List<string> Roles { get; set; } = new();
+
+        public string Role => Roles.Count > 0 ? Roles[0] : string.Empty;
+
+        public string Name { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string Phone { get; set; } = string.Empty;
         public bool IsActive { get; set; }
     }
 
@@ -23,5 +24,6 @@ namespace ClinicManagement.Application.DTOS.Request.Dashboard
         public int Page { get; set; }
         public int PageSize { get; set; }
     }
+
 
 }

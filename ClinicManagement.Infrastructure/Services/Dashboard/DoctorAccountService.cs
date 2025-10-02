@@ -27,7 +27,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             var query = _ctx.Patients.Select(p => new AccountDto
             {
                 Id = p.PatientUserId,
-                Role = "Patient",
+                Roles = new List<string> { "Patient" },
                 Name = p.FullName,
                 Email = p.Email,
                 Phone = p.Phone,
@@ -43,9 +43,11 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             }
 
             var total = await query.CountAsync(ct);
-            var items = await query.Skip((page - 1) * pageSize)
-                                   .Take(pageSize)
-                                   .ToListAsync(ct);
+            var items = await query
+                .OrderBy(x => x.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(ct);
 
             return new PagedResult<AccountDto>
             {
@@ -56,8 +58,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             };
         }
 
-        public async Task<AccountDto?> GetPatientByEmailAsync(
-            string email, CancellationToken ct)
+        public async Task<AccountDto?> GetPatientByEmailAsync(string email, CancellationToken ct)
         {
             email = email.Trim().ToLower();
 
@@ -66,16 +67,16 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                 .Select(p => new AccountDto
                 {
                     Id = p.PatientUserId,
-                    Role = "Patient",
+                    Roles = new List<string> { "Patient" },
                     Name = p.FullName,
                     Email = p.Email,
                     Phone = p.Phone,
                     IsActive = p.IsActive
-                }).FirstOrDefaultAsync(ct);
+                })
+                .FirstOrDefaultAsync(ct);
         }
 
-        public async Task<bool> UpdatePatientStatusAsync(
-            int patientId, bool isActive, CancellationToken ct)
+        public async Task<bool> UpdatePatientStatusAsync(int patientId, bool isActive, CancellationToken ct)
         {
             var patient = await _ctx.Patients.FindAsync(new object[] { patientId }, ct);
             if (patient == null) return false;
@@ -86,8 +87,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             return true;
         }
 
-        public async Task<int> BulkUpdatePatientStatusAsync(
-            IEnumerable<int> patientIds, bool isActive, CancellationToken ct)
+        public async Task<int> BulkUpdatePatientStatusAsync(IEnumerable<int> patientIds, bool isActive, CancellationToken ct)
         {
             var patients = await _ctx.Patients
                 .Where(p => patientIds.Contains(p.PatientUserId))
@@ -99,12 +99,15 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                 p.UpdatedAtUtc = DateTime.UtcNow;
             }
 
-            if (patients.Count > 0) await _ctx.SaveChangesAsync(ct);
+            if (patients.Count > 0)
+            {
+                await _ctx.SaveChangesAsync(ct);
+            }
+
             return patients.Count;
         }
 
-        public async Task<bool> ResetPatientPasswordAsync(
-            int patientId, string newPassword, CancellationToken ct)
+        public async Task<bool> ResetPatientPasswordAsync(int patientId, string newPassword, CancellationToken ct)
         {
             var patient = await _ctx.Patients.FindAsync(new object[] { patientId }, ct);
             if (patient == null) return false;
@@ -115,24 +118,23 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             return true;
         }
 
-        public async Task<List<AccountDto>> FilterPatientsByStatusAsync(
-            bool isActive, CancellationToken ct)
+        public async Task<List<AccountDto>> FilterPatientsByStatusAsync(bool isActive, CancellationToken ct)
         {
             return await _ctx.Patients
                 .Where(p => p.IsActive == isActive)
                 .Select(p => new AccountDto
                 {
                     Id = p.PatientUserId,
-                    Role = "Patient",
+                    Roles = new List<string> { "Patient" },
                     Name = p.FullName,
                     Email = p.Email,
                     Phone = p.Phone,
                     IsActive = p.IsActive
-                }).ToListAsync(ct);
+                })
+                .ToListAsync(ct);
         }
 
-        public async Task<DoctorProfileDto?> GetMyProfileAsync(
-            int doctorId, CancellationToken ct)
+        public async Task<DoctorProfileDto?> GetMyProfileAsync(int doctorId, CancellationToken ct)
         {
             return await (from e in _ctx.Employees
                           join er in _ctx.EmployeeRoles on e.EmployeeUserId equals er.EmployeeId
@@ -152,11 +154,11 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                                        select d.Title).FirstOrDefault(),
                               Image = e.Image,
                               IsActive = e.IsActive
-                          }).FirstOrDefaultAsync(ct);
+                          })
+                          .FirstOrDefaultAsync(ct);
         }
 
-        public async Task<bool> UpdateMyProfileAsync(
-            int doctorId, UpdateStaffProfileRequest req, CancellationToken ct)
+        public async Task<bool> UpdateMyProfileAsync(int doctorId, UpdateStaffProfileRequest req, CancellationToken ct)
         {
             var doctor = await _ctx.Employees
                 .Include(e => e.DoctorProfile)
@@ -164,13 +166,11 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
 
             if (doctor == null) return false;
 
-            // Cập nhật thông tin cơ bản của Employee
             if (!string.IsNullOrEmpty(req.FullName)) doctor.FullName = req.FullName;
             if (!string.IsNullOrEmpty(req.Phone)) doctor.Phone = req.Phone;
             if (!string.IsNullOrEmpty(req.Image)) doctor.Image = req.Image;
             doctor.UpdatedAtUtc = DateTime.UtcNow;
 
-            // Cập nhật thông tin chi tiết của DoctorProfile (không đụng đến khoa)
             if (doctor.DoctorProfile != null)
             {
                 if (!string.IsNullOrEmpty(req.Degree)) doctor.DoctorProfile.Degree = req.Degree;
@@ -188,6 +188,5 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             await _ctx.SaveChangesAsync(ct);
             return true;
         }
-
     }
 }

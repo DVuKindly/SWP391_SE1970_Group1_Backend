@@ -20,9 +20,6 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             _ctx = ctx;
         }
 
-     
-        // Lấy danh sách account
-      
         public async Task<PagedResult<AccountDto>> GetAccountsAsync(
             string staffRole, string? keyword, int page, int pageSize, CancellationToken ct)
         {
@@ -33,7 +30,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                 query = _ctx.Patients.Select(p => new AccountDto
                 {
                     Id = p.PatientUserId,
-                    Role = "Patient",
+                    Roles = new List<string> { "Patient" },
                     Name = p.FullName,
                     Email = p.Email,
                     Phone = p.Phone,
@@ -49,14 +46,17 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                         select new AccountDto
                         {
                             Id = e.EmployeeUserId,
-                            Role = r.Name,
+                            Roles = new List<string> { r.Name },
                             Name = e.FullName,
                             Email = e.Email,
                             Phone = e.Phone,
                             IsActive = e.IsActive
                         };
             }
-            else throw new UnauthorizedAccessException();
+            else
+            {
+                throw new UnauthorizedAccessException();
+            }
 
             if (!string.IsNullOrEmpty(keyword))
             {
@@ -67,9 +67,11 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             }
 
             var total = await query.CountAsync(ct);
-            var items = await query.Skip((page - 1) * pageSize)
-                                   .Take(pageSize)
-                                   .ToListAsync(ct);
+            var items = await query
+                .OrderBy(x => x.Name)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(ct);
 
             return new PagedResult<AccountDto>
             {
@@ -80,11 +82,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             };
         }
 
-
-        // Lấy account theo email
-     
-        public async Task<AccountDto?> GetAccountByEmailAsync(
-            string email, string staffRole, CancellationToken ct)
+        public async Task<AccountDto?> GetAccountByEmailAsync(string email, string staffRole, CancellationToken ct)
         {
             email = email.Trim().ToLower();
 
@@ -95,12 +93,13 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                     .Select(p => new AccountDto
                     {
                         Id = p.PatientUserId,
-                        Role = "Patient",
+                        Roles = new List<string> { "Patient" },
                         Name = p.FullName,
                         Email = p.Email,
                         Phone = p.Phone,
                         IsActive = p.IsActive
-                    }).FirstOrDefaultAsync(ct);
+                    })
+                    .FirstOrDefaultAsync(ct);
             }
             else if (staffRole == "Staff_Doctor")
             {
@@ -111,22 +110,19 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                               select new AccountDto
                               {
                                   Id = e.EmployeeUserId,
-                                  Role = r.Name,
+                                  Roles = new List<string> { r.Name },
                                   Name = e.FullName,
                                   Email = e.Email,
                                   Phone = e.Phone,
                                   IsActive = e.IsActive
-                              }).FirstOrDefaultAsync(ct);
+                              })
+                              .FirstOrDefaultAsync(ct);
             }
 
             throw new UnauthorizedAccessException();
         }
 
-    
-        // Lock/Unlock account
-   
-        public async Task<bool> UpdateAccountStatusAsync(
-            int accountId, string staffRole, bool isActive, CancellationToken ct)
+        public async Task<bool> UpdateAccountStatusAsync(int accountId, string staffRole, bool isActive, CancellationToken ct)
         {
             if (staffRole == "Staff_Patient")
             {
@@ -145,7 +141,8 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                                  join er in _ctx.EmployeeRoles on e.EmployeeUserId equals er.EmployeeId
                                  join r in _ctx.Roles on er.RoleId equals r.RoleId
                                  where e.EmployeeUserId == accountId && r.Name == "Doctor"
-                                 select e).FirstOrDefaultAsync(ct);
+                                 select e)
+                                 .FirstOrDefaultAsync(ct);
 
                 if (emp != null)
                 {
@@ -155,14 +152,11 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                     return true;
                 }
             }
+
             return false;
         }
 
-
-        // Bulk update status
-
-        public async Task<int> BulkUpdateAccountStatusAsync(
-            IEnumerable<int> accountIds, string staffRole, bool isActive, CancellationToken ct)
+        public async Task<int> BulkUpdateAccountStatusAsync(IEnumerable<int> accountIds, string staffRole, bool isActive, CancellationToken ct)
         {
             int updated = 0;
 
@@ -177,6 +171,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                     p.IsActive = isActive;
                     p.UpdatedAtUtc = DateTime.UtcNow;
                 }
+
                 updated = patients.Count;
             }
             else if (staffRole == "Staff_Doctor")
@@ -185,25 +180,27 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                                   join er in _ctx.EmployeeRoles on e.EmployeeUserId equals er.EmployeeId
                                   join r in _ctx.Roles on er.RoleId equals r.RoleId
                                   where accountIds.Contains(e.EmployeeUserId) && r.Name == "Doctor"
-                                  select e).ToListAsync(ct);
+                                  select e)
+                                  .ToListAsync(ct);
 
                 foreach (var e in emps)
                 {
                     e.IsActive = isActive;
                     e.UpdatedAtUtc = DateTime.UtcNow;
                 }
+
                 updated = emps.Count;
             }
 
-            if (updated > 0) await _ctx.SaveChangesAsync(ct);
+            if (updated > 0)
+            {
+                await _ctx.SaveChangesAsync(ct);
+            }
+
             return updated;
         }
 
-    
-        // Reset password
-
-        public async Task<bool> ResetPasswordAsync(
-            int accountId, string staffRole, string newPassword, CancellationToken ct)
+        public async Task<bool> ResetPasswordAsync(int accountId, string staffRole, string newPassword, CancellationToken ct)
         {
             string hashed = BCrypt.Net.BCrypt.HashPassword(newPassword);
 
@@ -224,7 +221,8 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                                  join er in _ctx.EmployeeRoles on e.EmployeeUserId equals er.EmployeeId
                                  join r in _ctx.Roles on er.RoleId equals r.RoleId
                                  where e.EmployeeUserId == accountId && r.Name == "Doctor"
-                                 select e).FirstOrDefaultAsync(ct);
+                                 select e)
+                                 .FirstOrDefaultAsync(ct);
 
                 if (emp != null)
                 {
@@ -234,14 +232,11 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                     return true;
                 }
             }
+
             return false;
         }
 
-      
-        // Filter account by status
-
-        public async Task<List<AccountDto>> FilterAccountsByStatusAsync(
-            string staffRole, bool isActive, CancellationToken ct)
+        public async Task<List<AccountDto>> FilterAccountsByStatusAsync(string staffRole, bool isActive, CancellationToken ct)
         {
             if (staffRole == "Staff_Patient")
             {
@@ -250,12 +245,13 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                     .Select(p => new AccountDto
                     {
                         Id = p.PatientUserId,
-                        Role = "Patient",
+                        Roles = new List<string> { "Patient" },
                         Name = p.FullName,
                         Email = p.Email,
                         Phone = p.Phone,
                         IsActive = p.IsActive
-                    }).ToListAsync(ct);
+                    })
+                    .ToListAsync(ct);
             }
             else if (staffRole == "Staff_Doctor")
             {
@@ -266,22 +262,19 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                               select new AccountDto
                               {
                                   Id = e.EmployeeUserId,
-                                  Role = r.Name,
+                                  Roles = new List<string> { r.Name },
                                   Name = e.FullName,
                                   Email = e.Email,
                                   Phone = e.Phone,
                                   IsActive = e.IsActive
-                              }).ToListAsync(ct);
+                              })
+                              .ToListAsync(ct);
             }
 
             throw new UnauthorizedAccessException();
         }
 
-    
-        // Staff tự xem profile
-
-        public async Task<StaffProfileDto?> GetMyProfileAsync(
-            int staffId, CancellationToken ct)
+        public async Task<StaffProfileDto?> GetMyProfileAsync(int staffId, CancellationToken ct)
         {
             return await _ctx.Employees
                 .Where(e => e.EmployeeUserId == staffId)
@@ -293,14 +286,11 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                     Phone = e.Phone,
                     Image = e.Image,
                     IsActive = e.IsActive
-                }).FirstOrDefaultAsync(ct);
+                })
+                .FirstOrDefaultAsync(ct);
         }
 
-  
-        // Staff tự update profile
-      
-        public async Task<bool> UpdateMyProfileAsync(
-            int staffId, UpdateStaffProfileRequest req, CancellationToken ct)
+        public async Task<bool> UpdateMyProfileAsync(int staffId, UpdateStaffProfileRequest req, CancellationToken ct)
         {
             var staff = await _ctx.Employees.FindAsync(new object[] { staffId }, ct);
             if (staff == null) return false;

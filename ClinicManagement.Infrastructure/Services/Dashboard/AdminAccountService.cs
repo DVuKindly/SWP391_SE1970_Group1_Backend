@@ -19,9 +19,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             _ctx = ctx;
         }
 
-       
-        // 1. GetAccounts full íist
-   
+        // 1. GetAccounts full list
         public async Task<PagedResult<AccountDto>> GetAccountsAsync(
             string? role,
             string? keyword,
@@ -29,78 +27,62 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             int pageSize,
             CancellationToken ct)
         {
-            IQueryable<AccountDto> query;
+            // 1. Employees với nhiều role -> 1 record
+            var employees = await (
+                from e in _ctx.Employees
+                join er in _ctx.EmployeeRoles on e.EmployeeUserId equals er.EmployeeId
+                join r in _ctx.Roles on er.RoleId equals r.RoleId
+                group r by new { e.EmployeeUserId, e.FullName, e.Email, e.Phone, e.IsActive } into g
+                select new AccountDto
+                {
+                    Id = g.Key.EmployeeUserId,
+                    Roles = g.Select(x => x.Name).ToList(),
+                    Name = g.Key.FullName,
+                    Email = g.Key.Email,
+                    Phone = g.Key.Phone,
+                    IsActive = g.Key.IsActive
+                }).ToListAsync(ct);
 
-            if (role == "Patient")
-            {
-                query = _ctx.Patients.Select(p => new AccountDto
+            // 2. Patients (chỉ có 1 role "Patient")
+            var patients = await _ctx.Patients
+                .Select(p => new AccountDto
                 {
                     Id = p.PatientUserId,
-                    Role = "Patient",
+                    Roles = new List<string> { "Patient" },
                     Name = p.FullName,
                     Email = p.Email,
                     Phone = p.Phone,
                     IsActive = p.IsActive
-                });
-            }
-            else if (!string.IsNullOrEmpty(role))
-            {
-                query = from e in _ctx.Employees
-                        join er in _ctx.EmployeeRoles on e.EmployeeUserId equals er.EmployeeId
-                        join r in _ctx.Roles on er.RoleId equals r.RoleId
-                        where r.Name == role
-                        select new AccountDto
-                        {
-                            Id = e.EmployeeUserId,
-                            Role = r.Name,
-                            Name = e.FullName,
-                            Email = e.Email,
-                            Phone = e.Phone,
-                            IsActive = e.IsActive
-                        };
-            }
-            else
-            {
-                // Nếu không filter role -> lấy tất cả
-                query = from e in _ctx.Employees
-                        join er in _ctx.EmployeeRoles on e.EmployeeUserId equals er.EmployeeId
-                        join r in _ctx.Roles on er.RoleId equals r.RoleId
-                        select new AccountDto
-                        {
-                            Id = e.EmployeeUserId,
-                            Role = r.Name,
-                            Name = e.FullName,
-                            Email = e.Email,
-                            Phone = e.Phone,
-                            IsActive = e.IsActive
-                        };
+                })
+                .ToListAsync(ct);
 
-                query = query.Concat(
-                    _ctx.Patients.Select(p => new AccountDto
-                    {
-                        Id = p.PatientUserId,
-                        Role = "Patient",
-                        Name = p.FullName,
-                        Email = p.Email,
-                        Phone = p.Phone,
-                        IsActive = p.IsActive
-                    })
-                );
+            // 3. Combine employees + patients (LINQ to Objects, không lỗi EF)
+            var combined = employees.Concat(patients).AsQueryable();
+
+            // 4. Lọc theo role
+            if (!string.IsNullOrEmpty(role))
+            {
+                combined = combined.Where(a => a.Roles.Contains(role));
             }
 
+            // 5. Lọc theo keyword
             if (!string.IsNullOrEmpty(keyword))
             {
-                query = query.Where(x =>
-                    x.Email.Contains(keyword) ||
-                    x.Phone.Contains(keyword) ||
-                    x.Name.Contains(keyword));
+                combined = combined.Where(x =>
+                    x.Email.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                    x.Phone.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                    x.Name.Contains(keyword, StringComparison.OrdinalIgnoreCase));
             }
 
-            var total = await query.CountAsync(ct);
-            var items = await query
+            // 6. Tổng số record
+            var total = combined.Count();
+
+            // 7. Phân trang
+            var items = combined
+                .OrderBy(x => x.Name)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToListAsync(ct);
+                .ToList();
 
             return new PagedResult<AccountDto>
             {
@@ -111,37 +93,34 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             };
         }
 
-
-        // 2. GetAccountById
-
+        // 2. GetAccountByEmail
         public async Task<AccountDto?> GetAccountByEmailAsync(string email, CancellationToken ct)
         {
             email = email.Trim().ToLower();
 
-       
             var emp = await (from e in _ctx.Employees
                              join er in _ctx.EmployeeRoles on e.EmployeeUserId equals er.EmployeeId
                              join r in _ctx.Roles on er.RoleId equals r.RoleId
                              where e.Email.ToLower() == email
+                             group r by new { e.EmployeeUserId, e.FullName, e.Email, e.Phone, e.IsActive } into g
                              select new AccountDto
                              {
-                                 Id = e.EmployeeUserId,
-                                 Role = r.Name,
-                                 Name = e.FullName,
-                                 Email = e.Email,
-                                 Phone = e.Phone,
-                                 IsActive = e.IsActive
+                                 Id = g.Key.EmployeeUserId,
+                                 Roles = g.Select(x => x.Name).ToList(),
+                                 Name = g.Key.FullName,
+                                 Email = g.Key.Email,
+                                 Phone = g.Key.Phone,
+                                 IsActive = g.Key.IsActive
                              }).FirstOrDefaultAsync(ct);
 
             if (emp != null) return emp;
 
-        
             return await _ctx.Patients
                 .Where(p => p.Email.ToLower() == email)
                 .Select(p => new AccountDto
                 {
                     Id = p.PatientUserId,
-                    Role = "Patient",
+                    Roles = new List<string> { "Patient" },
                     Name = p.FullName,
                     Email = p.Email,
                     Phone = p.Phone,
@@ -150,10 +129,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                 .FirstOrDefaultAsync(ct);
         }
 
-
-
         // 3. Update status (lock/unlock)
-
         public async Task<bool> UpdateAccountStatusAsync(int accountId, bool isActive, CancellationToken ct)
         {
             var emp = await _ctx.Employees.FindAsync(new object[] { accountId }, ct);
@@ -177,9 +153,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             return false;
         }
 
-       
         // 4. Bulk update status
-   
         public async Task<int> BulkUpdateAccountStatusAsync(IEnumerable<int> accountIds, bool isActive, CancellationToken ct)
         {
             int updated = 0;
@@ -208,9 +182,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             return updated;
         }
 
-  
         // 5. Get all roles
-   
         public async Task<List<RoleDto>> GetAllRolesAsync(CancellationToken ct)
         {
             return await _ctx.Roles
@@ -223,7 +195,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                 .ToListAsync(ct);
         }
 
-
+        // 6. Update profile
         public async Task<bool> UpdateProfileAsync(int accountId, UpdateProfileDtoAdmin dto, CancellationToken ct)
         {
             // 1. Tìm trong Employees trước
@@ -252,7 +224,5 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
 
             return false;
         }
-
-
     }
 }
