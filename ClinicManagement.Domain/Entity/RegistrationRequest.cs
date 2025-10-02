@@ -22,8 +22,11 @@ namespace ClinicManagement.Domain.Entity
         public string Phone { get; set; } = default!;
 
         [MaxLength(1000)]
-        public string Content { get; set; } = default!; 
+        public string Content { get; set; } = default!;
 
-        public bool IsProcessed { get; set; } = false;  
+        public bool IsProcessed { get; set; } = false;
+
+        public DateTime StartDate { get; set; }   // Ngày khám
     }
+
 }

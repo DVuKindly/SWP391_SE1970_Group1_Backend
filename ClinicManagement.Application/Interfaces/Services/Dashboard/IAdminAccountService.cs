@@ -26,5 +26,9 @@ namespace ClinicManagement.Application.Interfaces.Services.Dashboard
 
 
         Task<List<RoleDto>> GetAllRolesAsync(CancellationToken ct);
+
+        Task<bool> UpdateProfileAsync(int accountId, UpdateProfileDtoAdmin dto, CancellationToken ct);
+
+
     }
 }
