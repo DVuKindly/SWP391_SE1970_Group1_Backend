@@ -30,6 +30,7 @@ namespace ClinicManagement.Infrastructure
             services.AddScoped<IStaffAccountService, StaffAccountService>();
             services.AddScoped<IDoctorAccountService, DoctorAccountService>();
             services.AddScoped<IJwtService, JwtService>();
+            services.AddScoped<RoleService>();
 
             // Email Service
             services.AddSingleton<IEmailService>(sp =>
