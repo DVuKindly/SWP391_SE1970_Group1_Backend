@@ -1,9 +1,12 @@
 ﻿using ClinicManagement.Infrastructure;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Security.Claims;
 using System.Text;
+using DotNetEnv;
 
 namespace ClinicManagement.API
 {
@@ -11,10 +14,24 @@ namespace ClinicManagement.API
     {
         public static void Main(string[] args)
         {
+         
             var builder = WebApplication.CreateBuilder(args);
 
-            builder.Services.AddInfrastructure(builder.Configuration);
+          
+            Env.Load("../.env"); 
 
+
+      
+            builder.Configuration
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+                .AddJsonFile($"appsettings.{builder.Environment.EnvironmentName}.json", optional: true)
+                .AddEnvironmentVariables();
+
+            // Test in ra để chắc chắn env đã load
+            Console.WriteLine("Google ClientId = " + builder.Configuration["Authentication:Google:ClientId"]);
+            Console.WriteLine("Google ClientSecret = " + builder.Configuration["Authentication:Google:ClientSecret"]);
+
+            builder.Services.AddInfrastructure(builder.Configuration);
             builder.Services.AddControllers();
             Console.WriteLine(BCrypt.Net.BCrypt.HashPassword("admin"));
 
@@ -39,24 +56,13 @@ namespace ClinicManagement.API
                 };
 
                 c.AddSecurityDefinition("Bearer", securityScheme);
-
-                var securityRequirement = new OpenApiSecurityRequirement
+                c.AddSecurityRequirement(new OpenApiSecurityRequirement
                 {
-                    {
-                        new OpenApiSecurityScheme
-                        {
-                            Reference = new OpenApiReference
-                            {
-                                Type = ReferenceType.SecurityScheme,
-                                Id = "Bearer"
-                            }
-                        },
-                        Array.Empty<string>()
-                    }
-                };
-                c.AddSecurityRequirement(securityRequirement);
+                    { securityScheme, Array.Empty<string>() }
+                });
             });
 
+            // JWT config
             var jwtCfg = builder.Configuration.GetSection("Jwt");
             builder.Services
                 .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -80,6 +86,15 @@ namespace ClinicManagement.API
                         NameClaimType = "sub",
                         RoleClaimType = ClaimTypes.Role
                     };
+                })
+                // Google OAuth 
+                .AddCookie()
+                .AddGoogle(options =>
+                {
+                    var googleCfg = builder.Configuration.GetSection("Authentication:Google");
+                    options.ClientId = googleCfg["ClientId"] ?? throw new ArgumentNullException("ClientId");
+                    options.ClientSecret = googleCfg["ClientSecret"] ?? throw new ArgumentNullException("ClientSecret");
+                    options.CallbackPath = "/signin-google";
                 });
 
             builder.Services.AddAuthorization(options =>
@@ -97,12 +112,9 @@ namespace ClinicManagement.API
             }
 
             app.UseHttpsRedirection();
-
             app.UseAuthentication();
             app.UseAuthorization();
-
             app.MapControllers();
-
             app.Run();
         }
     }

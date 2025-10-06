@@ -30,5 +30,14 @@ namespace ClinicManagement.API.Controllers.Auth
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
+        [HttpPost("google-login")]
+        public async Task<IActionResult> GoogleLogin([FromBody] GoogleLoginRequest req, CancellationToken ct)
+        {
+            var result = await _auth.GoogleLoginPatientAsync(req, ct);
+            if (result is null) return Unauthorized("Invalid Google token.");
+            return Ok(result);
+        }
+
+
     }
 }
