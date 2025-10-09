@@ -1,10 +1,12 @@
-﻿using ClinicManagement.Application.Interfaces.Email;
+﻿using ClinicManagement.Application.Interfaces.Booking;
+using ClinicManagement.Application.Interfaces.Email;
 using ClinicManagement.Application.Interfaces.JWT;
 using ClinicManagement.Application.Interfaces.Services.Auth;
 using ClinicManagement.Application.Interfaces.Services.Dashboard;
 using ClinicManagement.Application.Interfaces.Services.Registration;
 using ClinicManagement.Infrastructure.Persistence;
 using ClinicManagement.Infrastructure.Services.Auth;
+using ClinicManagement.Infrastructure.Services.Booking;
 using ClinicManagement.Infrastructure.Services.Dashboard;
 using ClinicManagement.Infrastructure.Services.Email;
 using ClinicManagement.Infrastructure.Services.JWT;
@@ -29,6 +31,7 @@ namespace ClinicManagement.Infrastructure
             services.AddScoped<IAdminAccountService, AdminAccountService>();
             services.AddScoped<IStaffAccountService, StaffAccountService>();
             services.AddScoped<IDoctorAccountService, DoctorAccountService>();
+            services.AddScoped<IDoctorScheduleService, DoctorScheduleService>();
             services.AddScoped<IJwtService, JwtService>();
             services.AddScoped<RoleService>();
 

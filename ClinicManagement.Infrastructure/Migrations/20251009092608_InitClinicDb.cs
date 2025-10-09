@@ -137,6 +137,26 @@ namespace ClinicManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "WorkPatternTemplates",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    DayOfWeek = table.Column<int>(type: "int", nullable: false),
+                    StartTime = table.Column<TimeSpan>(type: "time", nullable: false),
+                    EndTime = table.Column<TimeSpan>(type: "time", nullable: false),
+                    SlotMinutes = table.Column<int>(type: "int", nullable: false),
+                    IsActive = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_WorkPatternTemplates", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Exams",
                 columns: table => new
                 {
@@ -185,6 +205,32 @@ namespace ClinicManagement.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
                         name: "FK_DoctorDepartments_Employees_DoctorId",
+                        column: x => x.DoctorId,
+                        principalTable: "Employees",
+                        principalColumn: "EmployeeUserId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DoctorLeaves",
+                columns: table => new
+                {
+                    LeaveId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    DoctorId = table.Column<int>(type: "int", nullable: false),
+                    StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Reason = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
+                    IsApproved = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DoctorLeaves", x => x.LeaveId);
+                    table.ForeignKey(
+                        name: "FK_DoctorLeaves_Employees_DoctorId",
                         column: x => x.DoctorId,
                         principalTable: "Employees",
                         principalColumn: "EmployeeUserId",
@@ -248,6 +294,34 @@ namespace ClinicManagement.Infrastructure.Migrations
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_DoctorSchedules_Employees_DoctorId",
+                        column: x => x.DoctorId,
+                        principalTable: "Employees",
+                        principalColumn: "EmployeeUserId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DoctorWorkPatterns",
+                columns: table => new
+                {
+                    WorkPatternId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    DoctorId = table.Column<int>(type: "int", nullable: false),
+                    DayOfWeek = table.Column<int>(type: "int", nullable: false),
+                    StartTime = table.Column<TimeSpan>(type: "time", nullable: false),
+                    EndTime = table.Column<TimeSpan>(type: "time", nullable: false),
+                    SlotMinutes = table.Column<int>(type: "int", nullable: false),
+                    IsWorking = table.Column<bool>(type: "bit", nullable: false),
+                    Note = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DoctorWorkPatterns", x => x.WorkPatternId);
+                    table.ForeignKey(
+                        name: "FK_DoctorWorkPatterns_Employees_DoctorId",
                         column: x => x.DoctorId,
                         principalTable: "Employees",
                         principalColumn: "EmployeeUserId",
@@ -369,31 +443,44 @@ namespace ClinicManagement.Infrastructure.Migrations
                 columns: new[] { "DepartmentId", "Code", "CreatedAtUtc", "Description", "IsActive", "Name", "UpdatedAtUtc" },
                 values: new object[,]
                 {
-                    { 1, "CARD", new DateTime(2025, 10, 2, 8, 33, 26, 663, DateTimeKind.Utc).AddTicks(8903), "Khoa Tim mạch", true, "Cardiology", null },
-                    { 2, "NEUR", new DateTime(2025, 10, 2, 8, 33, 26, 663, DateTimeKind.Utc).AddTicks(8907), "Khoa Thần kinh", true, "Neurology", null },
-                    { 3, "DERM", new DateTime(2025, 10, 2, 8, 33, 26, 663, DateTimeKind.Utc).AddTicks(8910), "Khoa Da liễu", true, "Dermatology", null }
+                    { 1, "CARD", new DateTime(2025, 10, 9, 9, 26, 7, 831, DateTimeKind.Utc).AddTicks(2248), "Khoa Tim mạch", true, "Cardiology", null },
+                    { 2, "NEUR", new DateTime(2025, 10, 9, 9, 26, 7, 831, DateTimeKind.Utc).AddTicks(2252), "Khoa Thần kinh", true, "Neurology", null },
+                    { 3, "DERM", new DateTime(2025, 10, 9, 9, 26, 7, 831, DateTimeKind.Utc).AddTicks(2255), "Khoa Da liễu", true, "Dermatology", null }
                 });
 
             migrationBuilder.InsertData(
                 table: "Employees",
                 columns: new[] { "EmployeeUserId", "CreatedAtUtc", "Email", "FullName", "Image", "IsActive", "LastLoginAtUtc", "PasswordHash", "Phone", "RefreshToken", "RefreshTokenExpiry", "UpdatedAtUtc" },
-                values: new object[] { 1, new DateTime(2025, 10, 2, 8, 33, 26, 663, DateTimeKind.Utc).AddTicks(3746), "admin@gmail.com", "Super Admin", null, true, null, "$2a$11$7Pb2XS4fRQWCvUfRhkTNJO2Qib1pTOFjWOX1SQSyIhjNN1CzfXVKC", "0123456789", null, null, null });
+                values: new object[] { 1, new DateTime(2025, 10, 9, 9, 26, 7, 830, DateTimeKind.Utc).AddTicks(7938), "admin@gmail.com", "Super Admin", null, true, null, "$2a$11$7Pb2XS4fRQWCvUfRhkTNJO2Qib1pTOFjWOX1SQSyIhjNN1CzfXVKC", "0123456789", null, null, null });
 
             migrationBuilder.InsertData(
                 table: "Roles",
                 columns: new[] { "RoleId", "CreatedAtUtc", "Description", "Name", "UpdatedAtUtc" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 10, 2, 8, 33, 26, 667, DateTimeKind.Utc).AddTicks(780), null, "Admin", null },
-                    { 2, new DateTime(2025, 10, 2, 8, 33, 26, 667, DateTimeKind.Utc).AddTicks(783), null, "Staff_Patient", null },
-                    { 3, new DateTime(2025, 10, 2, 8, 33, 26, 667, DateTimeKind.Utc).AddTicks(785), null, "Staff_Doctor", null },
-                    { 4, new DateTime(2025, 10, 2, 8, 33, 26, 667, DateTimeKind.Utc).AddTicks(786), null, "Doctor", null }
+                    { 1, new DateTime(2025, 10, 9, 9, 26, 7, 837, DateTimeKind.Utc).AddTicks(8025), null, "Admin", null },
+                    { 2, new DateTime(2025, 10, 9, 9, 26, 7, 837, DateTimeKind.Utc).AddTicks(8030), null, "Staff_Patient", null },
+                    { 3, new DateTime(2025, 10, 9, 9, 26, 7, 837, DateTimeKind.Utc).AddTicks(8033), null, "Staff_Doctor", null },
+                    { 4, new DateTime(2025, 10, 9, 9, 26, 7, 837, DateTimeKind.Utc).AddTicks(8035), null, "Doctor", null }
+                });
+
+            migrationBuilder.InsertData(
+                table: "WorkPatternTemplates",
+                columns: new[] { "Id", "CreatedAtUtc", "DayOfWeek", "EndTime", "IsActive", "SlotMinutes", "StartTime", "UpdatedAtUtc" },
+                values: new object[,]
+                {
+                    { 1, new DateTime(2025, 10, 9, 9, 26, 7, 837, DateTimeKind.Utc).AddTicks(8135), 1, new TimeSpan(0, 12, 0, 0, 0), true, 60, new TimeSpan(0, 8, 0, 0, 0), null },
+                    { 2, new DateTime(2025, 10, 9, 9, 26, 7, 837, DateTimeKind.Utc).AddTicks(8144), 1, new TimeSpan(0, 17, 0, 0, 0), true, 60, new TimeSpan(0, 13, 0, 0, 0), null },
+                    { 3, new DateTime(2025, 10, 9, 9, 26, 7, 837, DateTimeKind.Utc).AddTicks(8148), 2, new TimeSpan(0, 12, 0, 0, 0), true, 60, new TimeSpan(0, 8, 0, 0, 0), null },
+                    { 4, new DateTime(2025, 10, 9, 9, 26, 7, 837, DateTimeKind.Utc).AddTicks(8151), 2, new TimeSpan(0, 17, 0, 0, 0), true, 60, new TimeSpan(0, 13, 0, 0, 0), null },
+                    { 11, new DateTime(2025, 10, 9, 9, 26, 7, 837, DateTimeKind.Utc).AddTicks(8154), 6, new TimeSpan(0, 12, 0, 0, 0), true, 60, new TimeSpan(0, 8, 0, 0, 0), null },
+                    { 12, new DateTime(2025, 10, 9, 9, 26, 7, 837, DateTimeKind.Utc).AddTicks(8157), 6, new TimeSpan(0, 17, 0, 0, 0), true, 60, new TimeSpan(0, 13, 0, 0, 0), null }
                 });
 
             migrationBuilder.InsertData(
                 table: "EmployeeRoles",
                 columns: new[] { "EmployeeId", "RoleId", "AssignedAtUtc", "AssignedById", "CreatedAtUtc", "UpdatedAtUtc" },
-                values: new object[] { 1, 1, new DateTime(2025, 10, 2, 8, 33, 26, 663, DateTimeKind.Utc).AddTicks(4006), null, new DateTime(2025, 10, 2, 8, 33, 26, 663, DateTimeKind.Utc).AddTicks(4002), null });
+                values: new object[] { 1, 1, new DateTime(2025, 10, 9, 9, 26, 7, 830, DateTimeKind.Utc).AddTicks(8262), null, new DateTime(2025, 10, 9, 9, 26, 7, 830, DateTimeKind.Utc).AddTicks(8260), null });
 
             migrationBuilder.CreateIndex(
                 name: "IX_Appointments_ApprovedById",
@@ -431,6 +518,11 @@ namespace ClinicManagement.Infrastructure.Migrations
                 column: "DoctorId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_DoctorLeaves_DoctorId",
+                table: "DoctorLeaves",
+                column: "DoctorId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_DoctorProfiles_EmployeeId",
                 table: "DoctorProfiles",
                 column: "EmployeeId",
@@ -444,6 +536,11 @@ namespace ClinicManagement.Infrastructure.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_DoctorSchedules_DoctorId",
                 table: "DoctorSchedules",
+                column: "DoctorId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_DoctorWorkPatterns_DoctorId",
+                table: "DoctorWorkPatterns",
                 column: "DoctorId");
 
             migrationBuilder.CreateIndex(
@@ -489,10 +586,16 @@ namespace ClinicManagement.Infrastructure.Migrations
                 name: "DoctorDepartments");
 
             migrationBuilder.DropTable(
+                name: "DoctorLeaves");
+
+            migrationBuilder.DropTable(
                 name: "DoctorProfiles");
 
             migrationBuilder.DropTable(
                 name: "DoctorSchedules");
+
+            migrationBuilder.DropTable(
+                name: "DoctorWorkPatterns");
 
             migrationBuilder.DropTable(
                 name: "EmployeeRoles");
@@ -502,6 +605,9 @@ namespace ClinicManagement.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "RolePermissions");
+
+            migrationBuilder.DropTable(
+                name: "WorkPatternTemplates");
 
             migrationBuilder.DropTable(
                 name: "Exams");

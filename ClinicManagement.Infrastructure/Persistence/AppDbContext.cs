@@ -21,6 +21,9 @@ namespace ClinicManagement.Infrastructure.Persistence
         public DbSet<Exam> Exams { get; set; } = default!;
         public DbSet<DoctorProfile> DoctorProfiles { get; set; } = default!;
         public DbSet<RegistrationRequest> RegistrationRequests { get; set; } = default!;
+        public DbSet<DoctorWorkPattern> DoctorWorkPatterns { get; set; } = default!;
+        public DbSet<DoctorLeave> DoctorLeaves { get; set; } = default!;
+        public DbSet<WorkPatternTemplate> WorkPatternTemplates { get; set; } = default!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
@@ -39,8 +42,10 @@ namespace ClinicManagement.Infrastructure.Persistence
             modelBuilder.Entity<Patient>()
                 .HasIndex(p => p.Email)
                 .IsUnique();
+            modelBuilder.Entity<WorkPatternTemplate>()
+    .HasKey(w => w.Id);
 
-          
+
             modelBuilder.Entity<Employee>()
                 .HasKey(e => e.EmployeeUserId);
 
@@ -131,6 +136,24 @@ namespace ClinicManagement.Infrastructure.Persistence
                 .WithMany(e => e.AppointmentsAsDoctor)
                 .HasForeignKey(a => a.DoctorId)
                 .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<DoctorWorkPattern>()
+    .HasKey(wp => wp.WorkPatternId);
+
+            modelBuilder.Entity<DoctorWorkPattern>()
+                .HasOne(wp => wp.Doctor)
+                .WithMany(e => e.WorkPatterns)
+                .HasForeignKey(wp => wp.DoctorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<DoctorLeave>()
+                .HasKey(dl => dl.LeaveId);
+
+            modelBuilder.Entity<DoctorLeave>()
+                .HasOne(dl => dl.Doctor)
+                .WithMany(e => e.Leaves)
+                .HasForeignKey(dl => dl.DoctorId)
+                .OnDelete(DeleteBehavior.Cascade);
+
 
             modelBuilder.Entity<Appointment>()
                 .HasOne(a => a.CreatedBy)
@@ -223,6 +246,19 @@ namespace ClinicManagement.Infrastructure.Persistence
                 new Role { RoleId = 3, Name = "Staff_Doctor" },
                 new Role { RoleId = 4, Name = "Doctor" }
             );
+            modelBuilder.Entity<WorkPatternTemplate>().HasData(
+            new WorkPatternTemplate { Id = 1, DayOfWeek = DayOfWeek.Monday, StartTime = new TimeSpan(8, 0, 0), EndTime = new TimeSpan(12, 0, 0), SlotMinutes = 60, IsActive = true },
+            new WorkPatternTemplate { Id = 2, DayOfWeek = DayOfWeek.Monday, StartTime = new TimeSpan(13, 0, 0), EndTime = new TimeSpan(17, 0, 0), SlotMinutes = 60, IsActive = true },
+
+            new WorkPatternTemplate { Id = 3, DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeSpan(8, 0, 0), EndTime = new TimeSpan(12, 0, 0), SlotMinutes = 60, IsActive = true },
+            new WorkPatternTemplate { Id = 4, DayOfWeek = DayOfWeek.Tuesday, StartTime = new TimeSpan(13, 0, 0), EndTime = new TimeSpan(17, 0, 0), SlotMinutes = 60, IsActive = true },
+
+            // ... repeat for Wed, Thu, Fri, Sat (ids continuing)
+            new WorkPatternTemplate { Id = 11, DayOfWeek = DayOfWeek.Saturday, StartTime = new TimeSpan(8, 0, 0), EndTime = new TimeSpan(12, 0, 0), SlotMinutes = 60, IsActive = true },
+            new WorkPatternTemplate { Id = 12, DayOfWeek = DayOfWeek.Saturday, StartTime = new TimeSpan(13, 0, 0), EndTime = new TimeSpan(17, 0, 0), SlotMinutes = 60, IsActive = true }
+        );
+
+
         }
     }
 }
