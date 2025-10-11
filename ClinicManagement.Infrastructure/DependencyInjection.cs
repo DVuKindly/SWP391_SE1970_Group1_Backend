@@ -32,6 +32,8 @@ namespace ClinicManagement.Infrastructure
             services.AddScoped<IStaffAccountService, StaffAccountService>();
             services.AddScoped<IDoctorAccountService, DoctorAccountService>();
             services.AddScoped<IDoctorScheduleService, DoctorScheduleService>();
+            services.AddScoped<IStaffPatientService, StaffPatientService>();
+
             services.AddScoped<IJwtService, JwtService>();
             services.AddScoped<RoleService>();
 

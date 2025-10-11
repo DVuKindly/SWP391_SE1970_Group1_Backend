@@ -37,6 +37,8 @@ namespace ClinicManagement.Domain.Entity
 
         public int? ApprovedById { get; set; }
         public Employee? ApprovedBy { get; set; }
+        public decimal? TotalFee { get; set; }
+
 
         // Dịch vụ khám (optional)
         public int? ExamId { get; set; }

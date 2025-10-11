@@ -4,6 +4,7 @@ namespace ClinicManagement.Application.DTOS.Request.Auth
 {
     public class RegistrationRequestDto : IValidatableObject
     {
+
         [Required(ErrorMessage = "Họ tên là bắt buộc.")]
         [MaxLength(200, ErrorMessage = "Họ tên không được vượt quá 200 ký tự.")]
         public string FullName { get; set; } = default!;
