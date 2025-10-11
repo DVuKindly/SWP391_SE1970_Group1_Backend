@@ -11,7 +11,8 @@ namespace ClinicManagement.Application.Interfaces.Services.Dashboard
     public interface IStaffPatientService
     {
 
-        Task<ServiceResult<List<RegistrationRequestResponseDto>>> GetAllRequestsAsync();
+        Task<ServiceResult<List<RegistrationRequestResponseDto>>> GetAllRequestsAsync(string? status = null);
+
 
 
 
@@ -22,5 +23,8 @@ namespace ClinicManagement.Application.Interfaces.Services.Dashboard
 
    
         Task<ServiceResult<string>> AddNoteAsync(int requestId, int staffId, string note);
+
+        Task<ServiceResult<string>> MarkAsInvalidAsync(int requestId, int staffId, string reason);
+
     }
 }

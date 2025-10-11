@@ -18,11 +18,16 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             _context = context;
         }
 
-        // 🔹 Lấy danh sách tất cả yêu cầu đăng ký khám
-        public async Task<ServiceResult<List<RegistrationRequestResponseDto>>> GetAllRequestsAsync()
+        public async Task<ServiceResult<List<RegistrationRequestResponseDto>>> GetAllRequestsAsync(string? status = null)
         {
-            var list = await _context.RegistrationRequests
+            var query = _context.RegistrationRequests
                 .Include(r => r.HandledBy)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(status))
+                query = query.Where(r => r.Status == status);
+
+            var list = await query
                 .OrderByDescending(r => r.CreatedAtUtc)
                 .Select(r => new RegistrationRequestResponseDto
                 {
@@ -43,6 +48,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
 
             return ServiceResult<List<RegistrationRequestResponseDto>>.Ok(list);
         }
+
 
 
 
@@ -123,5 +129,31 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
 
             return ServiceResult<string>.Ok("Đã thêm ghi chú vào đăng ký khám.");
         }
+
+
+        // 🔹 Đánh dấu đăng ký khám là không hợp lệ / ảo
+        public async Task<ServiceResult<string>> MarkAsInvalidAsync(int requestId, int staffId, string reason)
+        {
+            var req = await _context.RegistrationRequests.FindAsync(requestId);
+            if (req == null)
+                return ServiceResult<string>.Fail("Không tìm thấy đăng ký.");
+
+            var staff = await _context.Employees.FindAsync(staffId);
+            if (staff == null)
+                return ServiceResult<string>.Fail("Nhân viên không tồn tại.");
+
+            req.Status = "Invalid"; // hoặc "Unknown" nếu bạn muốn
+            req.InternalNote = (req.InternalNote ?? "") +
+                               $"\n[{DateTime.Now:dd/MM/yyyy HH:mm}] {staff.FullName}: Đánh dấu không hợp lệ - {reason}";
+            req.HandledById = staffId;
+            req.IsProcessed = true;
+            req.ProcessedAt = DateTime.UtcNow;
+
+            _context.RegistrationRequests.Update(req);
+            await _context.SaveChangesAsync();
+
+            return ServiceResult<string>.Ok($"Đã đánh dấu đăng ký #{requestId} là 'Invalid'.");
+        }
+
     }
 }
