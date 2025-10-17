@@ -10,4 +10,8 @@
     <ProjectReference Include="..\ClinicManagement.Domain\ClinicManagement.Domain.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="DTOS\Request\NewFolder\" />
+  </ItemGroup>
+
 </Project>

@@ -30,5 +30,7 @@ namespace ClinicManagement.Application.Interfaces.Services.Dashboard
         Task<bool> UpdateProfileAsync(int accountId, UpdateProfileDtoAdmin dto, CancellationToken ct);
 
 
+
+
     }
 }

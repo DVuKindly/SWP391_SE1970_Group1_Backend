@@ -40,7 +40,7 @@ namespace ClinicManagement.Infrastructure.Services.Auth
             try
             {
                 var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
-                var pwd = (req.Password ?? string.Empty);
+                var pwd = req.Password ?? string.Empty;
 
                 if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(pwd))
                     return ServiceResult<AuthResponse>.Fail("Email và mật khẩu là bắt buộc.");
@@ -223,11 +223,12 @@ namespace ClinicManagement.Infrastructure.Services.Auth
 
 
 
+
         // employee
         public async Task<ServiceResult<AuthResponse>> LoginEmployeeAsync(LoginRequest req, CancellationToken ct = default)
         {
             var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
-            var pwd = (req.Password ?? string.Empty);
+            var pwd = req.Password ?? string.Empty;
 
             if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(pwd))
                 return ServiceResult<AuthResponse>.Fail("Email và mật khẩu là bắt buộc.");
@@ -388,6 +389,9 @@ namespace ClinicManagement.Infrastructure.Services.Auth
 
             await _ctx.SaveChangesAsync(ct);
 
+            // ✅ GÁN LỊCH MẶC ĐỊNH CHO BÁC SĨ MỚI
+            await AssignDefaultWorkPatternsToDoctorAsync(employee.EmployeeUserId, ct);
+
             return ServiceResult<AuthResponse>.Ok(new AuthResponse
             {
                 UserId = employee.EmployeeUserId,
@@ -396,12 +400,30 @@ namespace ClinicManagement.Infrastructure.Services.Auth
                 Roles = new[] { "Doctor" }
             }, "Tạo tài khoản Doctor thành công.");
         }
+        private async Task AssignDefaultWorkPatternsToDoctorAsync(int doctorId, CancellationToken ct = default)
+        {
+            // Lấy các template đang active
+            var templates = await _ctx.WorkPatternTemplates
+                .Where(t => t.IsActive)
+                .ToListAsync(ct);
+
+            if (!templates.Any()) return;
+
+            var patterns = templates.Select(t => new DoctorWorkPattern
+            {
+                DoctorId = doctorId,
+                DayOfWeek = t.DayOfWeek,
+                StartTime = t.StartTime,
+                EndTime = t.EndTime,
+                SlotMinutes = t.SlotMinutes,
+                CreatedAtUtc = DateTime.UtcNow
+            }).ToList();
+
+            _ctx.DoctorWorkPatterns.AddRange(patterns);
+            await _ctx.SaveChangesAsync(ct);
+        }
 
 
-
-
-       
-        
 
 
 

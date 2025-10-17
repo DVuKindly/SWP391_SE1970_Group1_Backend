@@ -1,10 +1,6 @@
 ﻿using ClinicManagement.Domain.Entity.Common;
 using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace ClinicManagement.Domain.Entity
 {
@@ -24,9 +20,26 @@ namespace ClinicManagement.Domain.Entity
         [MaxLength(1000)]
         public string Content { get; set; } = default!;
 
+        public DateTime StartDate { get; set; }  
+
+   
+        [MaxLength(50)]
+        public string Status { get; set; } = "Pending"; 
+
+        public DateTime? ProcessedAt { get; set; }
+
+    
+        [MaxLength(1000)]
+        public string? InternalNote { get; set; }
+
+        // ✅ Liên kết với Staff xử lý (nếu có)
+        public int? HandledById { get; set; }
+        public Employee? HandledBy { get; set; }
         public bool IsProcessed { get; set; } = false;
 
-        public DateTime StartDate { get; set; }   // Ngày khám
-    }
 
+        // ✅ Khi đặt lịch hộ: lưu AppointmentId (liên kết)
+        public int? AppointmentId { get; set; }
+        public Appointment? Appointment { get; set; }
+    }
 }

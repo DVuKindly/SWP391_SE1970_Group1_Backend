@@ -27,16 +27,13 @@ namespace ClinicManagement.Domain.Entity
         [MaxLength(30)]
         public string? Phone { get; set; }
 
-
-      
-
         [MaxLength(300)]
         public string? Image { get; set; }
+
         public DoctorProfile? DoctorProfile { get; set; }
 
         public ICollection<EmployeeRole> EmployeeRoles { get; set; } = new List<EmployeeRole>();
 
-   
         public ICollection<DoctorSchedule> Schedules { get; set; } = new List<DoctorSchedule>();
 
         public ICollection<DoctorDepartment> DoctorDepartments { get; set; } = new List<DoctorDepartment>();
@@ -44,5 +41,9 @@ namespace ClinicManagement.Domain.Entity
         public ICollection<Appointment> AppointmentsAsDoctor { get; set; } = new List<Appointment>();
         public ICollection<Appointment> AppointmentsCreated { get; set; } = new List<Appointment>();
         public ICollection<Appointment> AppointmentsApproved { get; set; } = new List<Appointment>();
+
+        // ✅ Thêm 2 dòng này để fix lỗi:
+        public ICollection<DoctorWorkPattern> WorkPatterns { get; set; } = new List<DoctorWorkPattern>();
+        public ICollection<DoctorLeave> Leaves { get; set; } = new List<DoctorLeave>();
     }
 }
