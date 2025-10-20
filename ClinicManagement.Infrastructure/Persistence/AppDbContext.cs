@@ -24,8 +24,9 @@
             public DbSet<DoctorWorkPattern> DoctorWorkPatterns { get; set; } = default!;
             public DbSet<DoctorLeave> DoctorLeaves { get; set; } = default!;
             public DbSet<WorkPatternTemplate> WorkPatternTemplates { get; set; } = default!;
+        public DbSet<PaymentTransaction> PaymentTransactions { get; set; } = default!;
 
-            protected override void OnModelCreating(ModelBuilder modelBuilder)
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
                 base.OnModelCreating(modelBuilder);
 
@@ -154,8 +155,23 @@
                     .HasForeignKey(dl => dl.DoctorId)
                     .OnDelete(DeleteBehavior.Cascade);
 
+            modelBuilder.Entity<PaymentTransaction>()
+         .HasKey(p => p.TransactionId);
 
-                modelBuilder.Entity<Appointment>()
+            modelBuilder.Entity<PaymentTransaction>()
+                .HasOne(p => p.RegistrationRequest)
+                .WithMany() 
+                .HasForeignKey(p => p.RegistrationRequestId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<PaymentTransaction>()
+                .HasOne(p => p.Appointment)
+                .WithMany()
+                .HasForeignKey(p => p.AppointmentId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+
+            modelBuilder.Entity<Appointment>()
                     .HasOne(a => a.CreatedBy)
                     .WithMany(e => e.AppointmentsCreated)
                     .HasForeignKey(a => a.CreatedById)
@@ -249,6 +265,11 @@
                 .WithMany()
                 .HasForeignKey(r => r.AppointmentId)
                 .OnDelete(DeleteBehavior.SetNull);
+            modelBuilder.Entity<RegistrationRequest>()
+    .HasOne(r => r.Exam)
+    .WithMany()
+    .HasForeignKey(r => r.ExamId)
+    .OnDelete(DeleteBehavior.SetNull);
 
 
             modelBuilder.Entity<Role>().HasData(
@@ -268,8 +289,40 @@
                 new WorkPatternTemplate { Id = 11, DayOfWeek = DayOfWeek.Saturday, StartTime = new TimeSpan(8, 0, 0), EndTime = new TimeSpan(12, 0, 0), SlotMinutes = 60, IsActive = true },
                 new WorkPatternTemplate { Id = 12, DayOfWeek = DayOfWeek.Saturday, StartTime = new TimeSpan(13, 0, 0), EndTime = new TimeSpan(17, 0, 0), SlotMinutes = 60, IsActive = true }
             );
+            modelBuilder.Entity<Exam>().HasData(
+    new Exam
+    {
+        ExamId = 1,
+        Name = "Khám Da liễu cơ bản",
+        Description = "Tư vấn và khám da liễu tổng quát, không bao gồm xét nghiệm",
+        Price = 200000,
+        DepartmentId = 3,
+        IsActive = true,
+        CreatedAtUtc = DateTime.UtcNow
+    },
+    new Exam
+    {
+        ExamId = 2,
+        Name = "Khám Tim mạch chuyên sâu",
+        Description = "Kiểm tra nhịp tim, đo ECG, siêu âm tim",
+        Price = 500000,
+        DepartmentId = 1,
+        IsActive = true,
+        CreatedAtUtc = DateTime.UtcNow
+    },
+    new Exam
+    {
+        ExamId = 3,
+        Name = "Khám Thần kinh tổng quát",
+        Description = "Khám lâm sàng, đánh giá triệu chứng thần kinh, tư vấn điều trị",
+        Price = 400000,
+        DepartmentId = 2,
+        IsActive = true,
+        CreatedAtUtc = DateTime.UtcNow
+    }
+);
 
 
-            }
         }
+    }
     }

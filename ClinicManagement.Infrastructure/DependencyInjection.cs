@@ -10,6 +10,8 @@ using ClinicManagement.Infrastructure.Services.Booking;
 using ClinicManagement.Infrastructure.Services.Dashboard;
 using ClinicManagement.Infrastructure.Services.Email;
 using ClinicManagement.Infrastructure.Services.JWT;
+
+using ClinicManagement.Infrastructure.Services.Payment.VNPAY;
 using ClinicManagement.Infrastructure.Services.Registration;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -21,11 +23,10 @@ namespace ClinicManagement.Infrastructure
     {
         public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration config)
         {
-            // DbContext
+      
             services.AddDbContext<ClinicDbContext>(opt =>
                 opt.UseSqlServer(config.GetConnectionString("DefaultConnection")));
 
-            // Auth & Registration Services
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<IRegistrationService, RegistrationService>();
             services.AddScoped<IAdminAccountService, AdminAccountService>();
@@ -33,11 +34,11 @@ namespace ClinicManagement.Infrastructure
             services.AddScoped<IDoctorAccountService, DoctorAccountService>();
             services.AddScoped<IDoctorScheduleService, DoctorScheduleService>();
             services.AddScoped<IStaffPatientService, StaffPatientService>();
-
+            services.AddScoped<IExamService, ExamService>();
+            // JWT & Role Services
             services.AddScoped<IJwtService, JwtService>();
             services.AddScoped<RoleService>();
 
-            // Email Service
             services.AddSingleton<IEmailService>(sp =>
             {
                 var emailCfg = config.GetSection("Email");
@@ -56,6 +57,12 @@ namespace ClinicManagement.Infrastructure
 
                 return new EmailService(host, port, username, password, fromName);
             });
+
+            // ✅ VNPay Payment
+            services.Configure<VnPayConfig>(config.GetSection("VNPay"));
+            services.AddScoped<IVnPayService, VnPayService>();
+            services.AddScoped<PaymentService>();
+
 
 
             return services;
