@@ -25,6 +25,7 @@ namespace ClinicManagement.Application.Interfaces.Services.Dashboard
         Task<ServiceResult<string>> AddNoteAsync(int requestId, int staffId, string note);
 
         Task<ServiceResult<string>> MarkAsInvalidAsync(int requestId, int staffId, string reason);
+        Task<ServiceResult<string>> ExecuteDirectPaymentAsync(int requestId, int staffId);
 
     }
 }
