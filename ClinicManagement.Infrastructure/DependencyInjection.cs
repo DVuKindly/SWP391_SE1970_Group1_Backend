@@ -1,13 +1,17 @@
-﻿using ClinicManagement.Application.Interfaces.Booking;
+﻿using ClinicManagement.Application.Interfaces.Appoiment;
+using ClinicManagement.Application.Interfaces.Booking;
+using ClinicManagement.Application.Interfaces.Department;
 using ClinicManagement.Application.Interfaces.Email;
 using ClinicManagement.Application.Interfaces.JWT;
 using ClinicManagement.Application.Interfaces.Services.Auth;
 using ClinicManagement.Application.Interfaces.Services.Dashboard;
 using ClinicManagement.Application.Interfaces.Services.Registration;
 using ClinicManagement.Infrastructure.Persistence;
+using ClinicManagement.Infrastructure.Services.Appoiment;
 using ClinicManagement.Infrastructure.Services.Auth;
 using ClinicManagement.Infrastructure.Services.Booking;
 using ClinicManagement.Infrastructure.Services.Dashboard;
+using ClinicManagement.Infrastructure.Services.Department;
 using ClinicManagement.Infrastructure.Services.Email;
 using ClinicManagement.Infrastructure.Services.JWT;
 
@@ -35,6 +39,8 @@ namespace ClinicManagement.Infrastructure
             services.AddScoped<IDoctorScheduleService, DoctorScheduleService>();
             services.AddScoped<IStaffPatientService, StaffPatientService>();
             services.AddScoped<IExamService, ExamService>();
+            services.AddScoped<IDepartmentService, DepartmentService>();
+            services.AddScoped<IAppointmentService, AppointmentService>();
             // JWT & Role Services
             services.AddScoped<IJwtService, JwtService>();
             services.AddScoped<RoleService>();

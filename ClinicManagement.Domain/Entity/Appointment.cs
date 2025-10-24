@@ -10,7 +10,8 @@ namespace ClinicManagement.Domain.Entity
         Approved,
         Rejected,
         Cancelled,
-        Completed
+        Completed,
+        Confirmed
     }
 
     public class Appointment : BaseEntity
