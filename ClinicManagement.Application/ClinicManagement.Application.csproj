@@ -7,11 +7,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ClinicManagement.Domain\ClinicManagement.Domain.csproj" />
+    <Compile Remove="DTOS\Request\NewFolder\**" />
+    <EmbeddedResource Remove="DTOS\Request\NewFolder\**" />
+    <None Remove="DTOS\Request\NewFolder\**" />
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="DTOS\Request\NewFolder\" />
+    <ProjectReference Include="..\ClinicManagement.Domain\ClinicManagement.Domain.csproj" />
   </ItemGroup>
 
 </Project>

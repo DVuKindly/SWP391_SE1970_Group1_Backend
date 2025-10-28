@@ -173,7 +173,6 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             if (req == null)
                 return ServiceResult<string>.Fail("Không tìm thấy đăng ký.");
 
-   
             if (req.Status == "Paid" || req.Status == "Direct_Payment")
                 return ServiceResult<string>.Fail("Đăng ký này đã được thanh toán, không thể thực hiện lại.");
 
@@ -181,7 +180,6 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             if (staff == null)
                 return ServiceResult<string>.Fail("Nhân viên không tồn tại.");
 
-      
             var exam = await _context.Exams.FirstOrDefaultAsync(e => e.ExamId == examId && e.IsActive);
             if (exam == null)
                 return ServiceResult<string>.Fail("Không tìm thấy gói khám hợp lệ.");
@@ -195,16 +193,17 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             req.ProcessedAt = DateTime.UtcNow;
             req.UpdatedAtUtc = DateTime.UtcNow;
 
-            // 🧾 Ghi log nội bộ
+            // Ghi log
             string prefix = $"[{DateTime.Now:dd/MM/yyyy HH:mm}] {staff.FullName}: ";
             req.InternalNote = (req.InternalNote ?? "") + "\n" + prefix +
-                               $"Xác nhận thanh toán trực tiếp tại phòng khám. Gói khám: {exam.Name} ({exam.Price:N0} VNĐ)";
+                $"Xác nhận thanh toán trực tiếp tại phòng khám. Gói khám: {exam.Name} ({exam.Price:N0} VNĐ)";
 
             _context.RegistrationRequests.Update(req);
             await _context.SaveChangesAsync();
 
             return ServiceResult<string>.Ok($"Đã xác nhận thanh toán trực tiếp cho đăng ký #{requestId} với gói khám '{exam.Name}'.");
         }
+
 
 
     }
