@@ -15,7 +15,6 @@ namespace ClinicManagement.API.Controllers.Payment
             _paymentService = paymentService;
         }
 
-
         [HttpPost("createpayment-for-registration")]
         public async Task<IActionResult> CreateForRegistration([FromQuery] int registrationId, [FromQuery] int examId)
         {
@@ -24,7 +23,6 @@ namespace ClinicManagement.API.Controllers.Payment
             try
             {
                 var paymentUrl = await _paymentService.CreatePaymentForRegistrationAsync(registrationId, examId, clientIp);
-
                 return Ok(new
                 {
                     success = true,
@@ -44,21 +42,18 @@ namespace ClinicManagement.API.Controllers.Payment
             }
         }
 
-
         [HttpGet("vnpayreturn")]
         public async Task<IActionResult> VnPayReturn()
         {
             try
             {
-                bool success = await _paymentService.ProcessReturnAsync(Request.Query);
+                await _paymentService.ProcessReturnAsync(Request.Query);
 
-                if (success)
-                {
-                    string html = @"
+                string html = @"
                 <html lang='vi'>
                 <head>
                     <meta charset='utf-8'/>
-                    <title>Thanh toán thành công</title>
+                    <title>Ghi nhận thanh toán</title>
                     <style>
                         body { font-family: Arial; background: #f5f8ff; text-align:center; padding-top:100px; }
                         .card {
@@ -85,22 +80,23 @@ namespace ClinicManagement.API.Controllers.Payment
                 </head>
                 <body>
                     <div class='card'>
-                        <h1>🎉 Thanh toán thành công!</h1>
+                        <h1> Chúng tôi đã ghi nhận giao dịch của bạn</h1>
                         <p>Cảm ơn bạn đã sử dụng dịch vụ của <strong>Clinic</strong>.</p>
-                        <p>Chúng tôi sẽ sớm liên hệ để xác nhận lịch hẹn khám.</p>
+                        <p>Hệ thống sẽ tự động xác nhận thanh toán và gửi thông báo đến bạn trong giây lát.</p>
                         <a href='http://localhost:5173' class='btn'>Về trang chủ</a>
                     </div>
                 </body>
                 </html>";
-                    return Content(html, "text/html");
-                }
-                else
-                {
-                    string html = @"
+
+                return Content(html, "text/html");
+            }
+            catch
+            {
+                string html = @"
                 <html lang='vi'>
                 <head>
                     <meta charset='utf-8'/>
-                    <title>Thanh toán thất bại</title>
+                    <title>Lỗi xử lý thanh toán</title>
                     <style>
                         body { font-family: Arial; background: #fff3f3; text-align:center; padding-top:100px; }
                         .card {
@@ -127,26 +123,15 @@ namespace ClinicManagement.API.Controllers.Payment
                 </head>
                 <body>
                     <div class='card'>
-                        <h1>❌ Thanh toán thất bại!</h1>
-                        <p>Đã có lỗi xảy ra trong quá trình thanh toán. Vui lòng thử lại.</p>
-                        <a href='http://localhost:5173' class='btn'>Quay lại</a>
+                        <h1>⚠️ Có lỗi trong quá trình ghi nhận thanh toán</h1>
+                        <p>Vui lòng không tải lại trang và chờ hệ thống xác nhận tự động.</p>
+                        <a href='http://localhost:5173' class='btn'>Về trang chủ</a>
                     </div>
                 </body>
                 </html>";
-                    return Content(html, "text/html");
-                }
-            }
-            catch (Exception ex)
-            {
-                string html = $@"
-            <html><body style='font-family:Arial;text-align:center;padding-top:100px'>
-                <h1 style='color:red'>⚠️ Lỗi xử lý thanh toán!</h1>
-                <p>{ex.Message}</p>
-                <a href='http://localhost:5173' style='color:#2A4D9B;text-decoration:none;font-weight:bold'>Về trang chủ</a>
-            </body></html>";
+
                 return Content(html, "text/html");
             }
         }
-
     }
 }

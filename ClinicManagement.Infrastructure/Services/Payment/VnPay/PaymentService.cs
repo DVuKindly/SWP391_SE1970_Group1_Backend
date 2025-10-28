@@ -89,41 +89,48 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
         {
             bool isValid = _vnPayService.ValidateResponse(query);
             string txnRef = query["vnp_TxnRef"].ToString();
+            string responseCode = query["vnp_ResponseCode"].ToString();
 
-            // 1️⃣ Tìm giao dịch trong DB
             var transaction = await _context.PaymentTransactions
                 .FirstOrDefaultAsync(x => x.TransactionCode == txnRef);
 
             if (transaction == null)
                 return false;
 
-            // 2️⃣ Lưu dữ liệu phản hồi từ VNPay
             transaction.ResponseData = string.Join("&", query.Select(q => $"{q.Key}={q.Value}"));
             transaction.PaymentDate = DateTime.Now;
-            transaction.Status = isValid ? "Success" : "Failed";
 
-            // 3️⃣ Nếu thanh toán thành công, cập nhật RegistrationRequest
-            if (isValid)
+            if (isValid && responseCode == "00")
             {
-                // Tìm theo Appointment hoặc dựa trên PaymentTransaction gần nhất
-                var reg = await _context.RegistrationRequests
-                    .OrderByDescending(r => r.CreatedAtUtc)
-                    .FirstOrDefaultAsync(r =>
-                        r.AppointmentId == transaction.AppointmentId ||
-                        (r.Status == "Contacted" && (r.Fee == transaction.Amount || r.Exam!.Price == transaction.Amount))
-                    );
-
-                if (reg != null)
+                if (transaction.Status != "Success")
                 {
-                    reg.Status = "Paid";
-                    reg.ProcessedAt = DateTime.Now;
-                    reg.IsProcessed = true;
-                    reg.Fee = reg.Exam?.Price ?? transaction.Amount;
+                    transaction.Status = "Success";
+
+                    var reg = await _context.RegistrationRequests
+                        .OrderByDescending(r => r.CreatedAtUtc)
+                        .FirstOrDefaultAsync(r =>
+                            r.AppointmentId == transaction.AppointmentId ||
+                            (r.Status == "Contacted" && (r.Fee == transaction.Amount || r.Exam!.Price == transaction.Amount))
+                        );
+
+                    if (reg != null)
+                    {
+                        reg.Status = "Paid";
+                        reg.ProcessedAt = DateTime.Now;
+                        reg.IsProcessed = true;
+                        reg.Fee = reg.Exam?.Price ?? transaction.Amount;
+                    }
                 }
+            }
+            else
+            {
+                if (transaction.Status != "Success")
+                    transaction.Status = "Failed";
             }
 
             await _context.SaveChangesAsync();
             return isValid;
         }
+
     }
 }
