@@ -62,5 +62,14 @@ namespace ClinicManagement.API.Controllers.Dashboard {
             var result = await _service.MarkAsInvalidAsync(id, staffId, reason ?? "Không xác minh được thông tin.");
             return result.Success ? Ok(result) : BadRequest(result);
         }
+
+        [HttpPut("registrations/{id}/direct-payment")]
+        public async Task<IActionResult> ExecuteDirectPayment(int id)
+        {
+            int staffId = GetStaffId();
+            var result = await _service.ExecuteDirectPaymentAsync(id, staffId);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
     }
 }

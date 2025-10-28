@@ -91,11 +91,14 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             if (req == null)
                 return ServiceResult<string>.Fail("Không tìm thấy đăng ký.");
 
+         
+            if (req.Status == "Paid" || req.Status == "Direct_Payment")
+                return ServiceResult<string>.Fail("Không thể cập nhật trạng thái vì đăng ký đã được thanh toán.");
+
             var staff = await _context.Employees.FindAsync(staffId);
             if (staff == null)
                 return ServiceResult<string>.Fail("Nhân viên không tồn tại.");
 
-            // Cập nhật trạng thái & người xử lý
             req.Status = newStatus;
             req.HandledById = staffId;
             req.IsProcessed = true;
@@ -138,11 +141,15 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             if (req == null)
                 return ServiceResult<string>.Fail("Không tìm thấy đăng ký.");
 
+           
+            if (req.Status == "Paid" || req.Status == "Direct_Payment")
+                return ServiceResult<string>.Fail("Không thể đánh dấu không hợp lệ vì đăng ký đã được thanh toán.");
+
             var staff = await _context.Employees.FindAsync(staffId);
             if (staff == null)
                 return ServiceResult<string>.Fail("Nhân viên không tồn tại.");
 
-            req.Status = "Invalid"; // hoặc "Unknown" nếu bạn muốn
+            req.Status = "Invalid"; // hoặc "Unknown"
             req.InternalNote = (req.InternalNote ?? "") +
                                $"\n[{DateTime.Now:dd/MM/yyyy HH:mm}] {staff.FullName}: Đánh dấu không hợp lệ - {reason}";
             req.HandledById = staffId;
@@ -153,6 +160,36 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             await _context.SaveChangesAsync();
 
             return ServiceResult<string>.Ok($"Đã đánh dấu đăng ký #{requestId} là 'Invalid'.");
+        }
+
+        // 🔹 Xác nhận thanh toán trực tiếp (Direct_Payment)
+        public async Task<ServiceResult<string>> ExecuteDirectPaymentAsync(int requestId, int staffId)
+        {
+            var req = await _context.RegistrationRequests.FindAsync(requestId);
+            if (req == null)
+                return ServiceResult<string>.Fail("Không tìm thấy đăng ký.");
+
+            // ❌ Nếu đã thanh toán rồi thì không thực hiện lại
+            if (req.Status == "Paid" || req.Status == "Direct_Payment")
+                return ServiceResult<string>.Fail("Đăng ký này đã được thanh toán, không thể thực hiện lại.");
+
+            var staff = await _context.Employees.FindAsync(staffId);
+            if (staff == null)
+                return ServiceResult<string>.Fail("Nhân viên không tồn tại.");
+
+            req.Status = "Direct_Payment";
+            req.IsProcessed = true;
+            req.HandledById = staffId;
+            req.ProcessedAt = DateTime.UtcNow;
+
+            // Ghi log nội bộ
+            string prefix = $"[{DateTime.Now:dd/MM/yyyy HH:mm}] {staff.FullName}: ";
+            req.InternalNote = (req.InternalNote ?? "") + "\n" + prefix + "Xác nhận thanh toán trực tiếp tại phòng khám.";
+
+            _context.RegistrationRequests.Update(req);
+            await _context.SaveChangesAsync();
+
+            return ServiceResult<string>.Ok($"Đã xác nhận thanh toán trực tiếp cho đăng ký #{requestId}.");
         }
 
     }
