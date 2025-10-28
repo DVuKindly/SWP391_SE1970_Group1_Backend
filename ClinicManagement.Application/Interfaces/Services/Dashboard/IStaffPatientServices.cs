@@ -1,5 +1,4 @@
-﻿
-using ClinicManagement.Application;
+﻿using ClinicManagement.Application;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using ClinicManagement.Application.DTOS.Request.Auth;
@@ -10,22 +9,17 @@ namespace ClinicManagement.Application.Interfaces.Services.Dashboard
 {
     public interface IStaffPatientService
     {
-
         Task<ServiceResult<List<RegistrationRequestResponseDto>>> GetAllRequestsAsync(string? status = null);
-
-
-
 
         Task<ServiceResult<RegistrationRequestDetailDto>> GetRequestDetailAsync(int requestId);
 
-  
         Task<ServiceResult<string>> UpdateStatusAsync(int requestId, string newStatus, int staffId);
 
-   
         Task<ServiceResult<string>> AddNoteAsync(int requestId, int staffId, string note);
 
         Task<ServiceResult<string>> MarkAsInvalidAsync(int requestId, int staffId, string reason);
-        Task<ServiceResult<string>> ExecuteDirectPaymentAsync(int requestId, int staffId);
 
+ 
+        Task<ServiceResult<string>> ExecuteDirectPaymentAsync(int requestId, int staffId, int examId);
     }
 }

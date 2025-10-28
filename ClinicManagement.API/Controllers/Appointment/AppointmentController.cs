@@ -54,7 +54,7 @@ namespace ClinicManagement.API.Controllers.Appointment
             if (request == null)
                 return BadRequest("Yêu cầu không hợp lệ.");
 
-            // TODO: sau này lấy từ JWT claim
+
             int createdById = 1;
 
             var result = await _service.CreateAppointmentAsync(request, createdById);

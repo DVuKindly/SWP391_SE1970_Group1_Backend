@@ -79,155 +79,155 @@ namespace ClinicManagement.Infrastructure.Services.Appoiment
         }
         #endregion
 
-        #region 🧠 3. Lấy danh sách bác sĩ + lịch làm việc
-        public async Task<ServiceResult<List<DoctorScheduleResponseDto>>> GetAllDoctorsWithWorkPatternsAsync()
-        {
-            var doctors = await _context.Employees
-                .Include(e => e.DoctorProfile)
-                .Include(e => e.DoctorDepartments)
-                    .ThenInclude(dd => dd.Department)
-                .Where(e => e.EmployeeRoles.Any(r => r.Role.Name == "Doctor") && e.IsActive)
-                .ToListAsync();
-
-            var result = new List<DoctorScheduleResponseDto>();
-
-            foreach (var doc in doctors)
+            #region 🧠 3. Lấy danh sách bác sĩ + lịch làm việc
+            public async Task<ServiceResult<List<DoctorScheduleResponseDto>>> GetAllDoctorsWithWorkPatternsAsync()
             {
-                var patterns = await _context.DoctorWorkPatterns
-                    .Where(w => w.DoctorId == doc.EmployeeUserId && w.IsWorking)
-                    .OrderBy(w => w.DayOfWeek)
-                    .Select(w => new WorkPatternDto
-                    {
-                        DayOfWeek = (int)w.DayOfWeek,
-                        DayName = w.DayOfWeek.ToString(),
-                        StartTime = w.StartTime.ToString(@"hh\:mm"),
-                        EndTime = w.EndTime.ToString(@"hh\:mm"),
-                        IsWorking = w.IsWorking
-                    })
+                var doctors = await _context.Employees
+                    .Include(e => e.DoctorProfile)
+                    .Include(e => e.DoctorDepartments)
+                        .ThenInclude(dd => dd.Department)
+                    .Where(e => e.EmployeeRoles.Any(r => r.Role.Name == "Doctor") && e.IsActive)
                     .ToListAsync();
 
-                result.Add(new DoctorScheduleResponseDto
+                var result = new List<DoctorScheduleResponseDto>();
+
+                foreach (var doc in doctors)
                 {
-                    DoctorId = doc.EmployeeUserId,
-                    FullName = doc.FullName,
-                    DepartmentName = doc.DoctorDepartments.FirstOrDefault()?.Department?.Name,
-                    Title = doc.DoctorProfile?.Title,
-                    Degree = doc.DoctorProfile?.Degree,
-                    Image = doc.Image,
-                    IsActive = doc.IsActive,
-                    WorkPatterns = patterns
-                });
-            }
-
-            return ServiceResult<List<DoctorScheduleResponseDto>>.Ok(result);
-        }
-        #endregion
-
-        #region 📅 4. Tạo lịch hẹn mới (dùng RegistrationRequestId)
-        public async Task<ServiceResult<AppointmentResponseDto>> CreateAppointmentAsync(AppointmentRequestDto request, int createdById)
-        {
-            try
-            {
-                var regRequest = await _context.RegistrationRequests
-                    .Include(r => r.Exam)
-                    .FirstOrDefaultAsync(r => r.RegistrationRequestId == request.RegistrationRequestId);
-
-                if (regRequest == null)
-                    return ServiceResult<AppointmentResponseDto>.Fail("Không tìm thấy yêu cầu đăng ký khám.");
-
-                if (regRequest.Status != "Paid" && regRequest.Status != "Direct_Payment")
-                    return ServiceResult<AppointmentResponseDto>.Fail("Bệnh nhân chưa thanh toán hoặc không đủ điều kiện đặt lịch.");
-
-                var exam = regRequest.Exam!;
-                var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Email == regRequest.Email);
-                if (patient == null)
-                    return ServiceResult<AppointmentResponseDto>.Fail("Không tìm thấy bệnh nhân tương ứng.");
-
-                // Kiểm tra bác sĩ có trong khung giờ làm việc
-                var workPatterns = await _context.DoctorWorkPatterns
-                    .Where(w => w.DoctorId == request.DoctorId &&
-                                w.DayOfWeek == request.StartTime.DayOfWeek &&
-                                w.IsWorking)
-                    .ToListAsync();
-
-                if (!workPatterns.Any())
-                {
-                    workPatterns = await _context.WorkPatternTemplates
-                        .Where(t => t.DayOfWeek == request.StartTime.DayOfWeek && t.IsActive)
-                        .Select(t => new DoctorWorkPattern
+                    var patterns = await _context.DoctorWorkPatterns
+                        .Where(w => w.DoctorId == doc.EmployeeUserId && w.IsWorking)
+                        .OrderBy(w => w.DayOfWeek)
+                        .Select(w => new WorkPatternDto
                         {
-                            StartTime = t.StartTime,
-                            EndTime = t.EndTime,
-                            SlotMinutes = t.SlotMinutes,
-                            IsWorking = true
+                            DayOfWeek = (int)w.DayOfWeek,
+                            DayName = w.DayOfWeek.ToString(),
+                            StartTime = w.StartTime.ToString(@"hh\:mm"),
+                            EndTime = w.EndTime.ToString(@"hh\:mm"),
+                            IsWorking = w.IsWorking
                         })
                         .ToListAsync();
+
+                    result.Add(new DoctorScheduleResponseDto
+                    {
+                        DoctorId = doc.EmployeeUserId,
+                        FullName = doc.FullName,
+                        DepartmentName = doc.DoctorDepartments.FirstOrDefault()?.Department?.Name,
+                        Title = doc.DoctorProfile?.Title,
+                        Degree = doc.DoctorProfile?.Degree,
+                        Image = doc.Image,
+                        IsActive = doc.IsActive,
+                        WorkPatterns = patterns
+                    });
                 }
 
-                bool inWorkingTime = workPatterns.Any(w =>
-                    request.StartTime.TimeOfDay >= w.StartTime &&
-                    request.EndTime.TimeOfDay <= w.EndTime);
-
-                if (!inWorkingTime)
-                    return ServiceResult<AppointmentResponseDto>.Fail("Bác sĩ không làm việc trong khung giờ này.");
-
-                bool conflict = await _context.Appointments.AnyAsync(a =>
-                    a.DoctorId == request.DoctorId &&
-                    a.StartTime < request.EndTime &&
-                    a.EndTime > request.StartTime &&
-                    a.Status != AppointmentStatus.Cancelled);
-
-                if (conflict)
-                    return ServiceResult<AppointmentResponseDto>.Fail("Khung giờ này đã có lịch hẹn khác.");
-
-                var appointment = new Appointment
-                {
-                    PatientId = patient.PatientUserId,
-                    DoctorId = request.DoctorId,
-                    ExamId = regRequest.ExamId,
-                    StartTime = request.StartTime,
-                    EndTime = request.EndTime,
-                    Note = request.Note,
-                    CreatedById = createdById,
-                    Status = AppointmentStatus.Pending,
-                    TotalFee = regRequest.Fee ?? exam.Price,
-                    PaymentMethod = "VNPay",
-                    IsPaid = true,
-                    CreatedAtUtc = DateTime.UtcNow
-                };
-
-                _context.Appointments.Add(appointment);
-                await _context.SaveChangesAsync();
-
-                regRequest.AppointmentId = appointment.AppointmentId;
-                regRequest.Status = "Scheduled";
-                regRequest.UpdatedAtUtc = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
-
-                var doctor = await _context.Employees.FindAsync(request.DoctorId);
-
-                var response = new AppointmentResponseDto
-                {
-                    AppointmentId = appointment.AppointmentId,
-                    DoctorName = doctor?.FullName ?? "",
-                    PatientName = regRequest.FullName,
-                    ExamName = exam.Name,
-                    TotalFee = appointment.TotalFee,
-                    StartTime = appointment.StartTime,
-                    EndTime = appointment.EndTime,
-                    Status = appointment.Status.ToString(),
-                    Note = appointment.Note,
-                    PaymentMethod = appointment.PaymentMethod,
-                    IsPaid = appointment.IsPaid
-                };
-
-                return ServiceResult<AppointmentResponseDto>.Ok(response, "Đặt lịch thành công.");
+                return ServiceResult<List<DoctorScheduleResponseDto>>.Ok(result);
             }
-            catch (Exception ex)
+            #endregion
+
+            #region 📅 4. Tạo lịch hẹn mới (dùng RegistrationRequestId)
+            public async Task<ServiceResult<AppointmentResponseDto>> CreateAppointmentAsync(AppointmentRequestDto request, int createdById)
             {
-                return ServiceResult<AppointmentResponseDto>.Fail("Lỗi khi đặt lịch: " + ex.Message);
+                try
+                {
+                    var regRequest = await _context.RegistrationRequests
+                        .Include(r => r.Exam)
+                        .FirstOrDefaultAsync(r => r.RegistrationRequestId == request.RegistrationRequestId);
+
+                    if (regRequest == null)
+                        return ServiceResult<AppointmentResponseDto>.Fail("Không tìm thấy yêu cầu đăng ký khám.");
+
+                    if (regRequest.Status != "Paid" && regRequest.Status != "Direct_Payment")
+                        return ServiceResult<AppointmentResponseDto>.Fail("Bệnh nhân chưa thanh toán hoặc không đủ điều kiện đặt lịch.");
+
+                    var exam = regRequest.Exam!;
+                    var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Email == regRequest.Email);
+                    if (patient == null)
+                        return ServiceResult<AppointmentResponseDto>.Fail("Không tìm thấy bệnh nhân tương ứng.");
+
+                    // Kiểm tra bác sĩ có trong khung giờ làm việc
+                    var workPatterns = await _context.DoctorWorkPatterns
+                        .Where(w => w.DoctorId == request.DoctorId &&
+                                    w.DayOfWeek == request.StartTime.DayOfWeek &&
+                                    w.IsWorking)
+                        .ToListAsync();
+
+                    if (!workPatterns.Any())
+                    {
+                        workPatterns = await _context.WorkPatternTemplates
+                            .Where(t => t.DayOfWeek == request.StartTime.DayOfWeek && t.IsActive)
+                            .Select(t => new DoctorWorkPattern
+                            {
+                                StartTime = t.StartTime,
+                                EndTime = t.EndTime,
+                                SlotMinutes = t.SlotMinutes,
+                                IsWorking = true
+                            })
+                            .ToListAsync();
+                    }
+
+                    bool inWorkingTime = workPatterns.Any(w =>
+                        request.StartTime.TimeOfDay >= w.StartTime &&
+                        request.EndTime.TimeOfDay <= w.EndTime);
+
+                    if (!inWorkingTime)
+                        return ServiceResult<AppointmentResponseDto>.Fail("Bác sĩ không làm việc trong khung giờ này.");
+
+                    bool conflict = await _context.Appointments.AnyAsync(a =>
+                        a.DoctorId == request.DoctorId &&
+                        a.StartTime < request.EndTime &&
+                        a.EndTime > request.StartTime &&
+                        a.Status != AppointmentStatus.Cancelled);
+
+                    if (conflict)
+                        return ServiceResult<AppointmentResponseDto>.Fail("Khung giờ này đã có lịch hẹn khác.");
+
+                    var appointment = new Appointment
+                    {
+                        PatientId = patient.PatientUserId,
+                        DoctorId = request.DoctorId,
+                        ExamId = regRequest.ExamId,
+                        StartTime = request.StartTime,
+                        EndTime = request.EndTime,
+                        Note = request.Note,
+                        CreatedById = createdById,
+                        Status = AppointmentStatus.Pending,
+                        TotalFee = regRequest.Fee ?? exam.Price,
+                        PaymentMethod = "VNPay",
+                        IsPaid = true,
+                        CreatedAtUtc = DateTime.UtcNow
+                    };
+
+                    _context.Appointments.Add(appointment);
+                    await _context.SaveChangesAsync();
+
+                    regRequest.AppointmentId = appointment.AppointmentId;
+                    regRequest.Status = "Scheduled";
+                    regRequest.UpdatedAtUtc = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+
+                    var doctor = await _context.Employees.FindAsync(request.DoctorId);
+
+                    var response = new AppointmentResponseDto
+                    {
+                        AppointmentId = appointment.AppointmentId,
+                        DoctorName = doctor?.FullName ?? "",
+                        PatientName = regRequest.FullName,
+                        ExamName = exam.Name,
+                        TotalFee = appointment.TotalFee,
+                        StartTime = appointment.StartTime,
+                        EndTime = appointment.EndTime,
+                        Status = appointment.Status.ToString(),
+                        Note = appointment.Note,
+                        PaymentMethod = appointment.PaymentMethod,
+                        IsPaid = appointment.IsPaid
+                    };
+
+                    return ServiceResult<AppointmentResponseDto>.Ok(response, "Đặt lịch thành công.");
+                }
+                catch (Exception ex)
+                {
+                    return ServiceResult<AppointmentResponseDto>.Fail("Lỗi khi đặt lịch: " + ex.Message);
+                }
             }
-        }
         #endregion
 
         #region 🔍 5. Chi tiết / Xoá / Duyệt

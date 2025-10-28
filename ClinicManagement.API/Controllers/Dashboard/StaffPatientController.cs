@@ -1,4 +1,5 @@
-﻿using ClinicManagement.Application.Interfaces.Services.Dashboard;
+﻿using ClinicManagement.Application;
+using ClinicManagement.Application.Interfaces.Services.Dashboard;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -62,14 +63,26 @@ namespace ClinicManagement.API.Controllers.Dashboard {
             var result = await _service.MarkAsInvalidAsync(id, staffId, reason ?? "Không xác minh được thông tin.");
             return result.Success ? Ok(result) : BadRequest(result);
         }
-
         [HttpPut("registrations/{id}/direct-payment")]
-        public async Task<IActionResult> ExecuteDirectPayment(int id)
+        public async Task<IActionResult> ExecuteDirectPayment(int id, [FromQuery] int examId)
         {
+        
             int staffId = GetStaffId();
-            var result = await _service.ExecuteDirectPaymentAsync(id, staffId);
-            return result.Success ? Ok(result) : BadRequest(result);
+
+      
+            if (examId <= 0)
+                return BadRequest(ServiceResult<string>.Fail("Vui lòng chọn gói khám hợp lệ."));
+
+      
+            var result = await _service.ExecuteDirectPaymentAsync(id, staffId, examId);
+
+ 
+            if (result.Success)
+                return Ok(result);
+
+            return BadRequest(result);
         }
+
 
     }
 }
