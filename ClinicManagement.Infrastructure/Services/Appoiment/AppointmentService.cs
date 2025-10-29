@@ -4,6 +4,7 @@ using ClinicManagement.Application.DTOS.Request.Dashboard;
 using ClinicManagement.Application.DTOS.Response.Appoitment;
 
 using ClinicManagement.Application.Interfaces.Appoiment;
+using ClinicManagement.Application.Interfaces.Email;
 using ClinicManagement.Domain.Entity;
 using ClinicManagement.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
@@ -17,13 +18,15 @@ namespace ClinicManagement.Infrastructure.Services.Appoiment
     public class AppointmentService : IAppointmentService
     {
         private readonly ClinicDbContext _context;
-
-        public AppointmentService(ClinicDbContext context)
+        private readonly IEmailService _email;
+        private static DateTime NowVN => DateTime.UtcNow.AddHours(7);
+        public AppointmentService(ClinicDbContext context , IEmailService email)
         {
             _context = context;
+            _email = email;
         }
 
-        #region 🧩 1. Hiển thị bệnh nhân đủ điều kiện đặt lịch
+        #region  1. Hiển thị bệnh nhân đủ điều kiện đặt lịch
         public async Task<ServiceResult<List<EligiblePatientResponseDto>>> GetEligiblePatientsAsync()
         {
             var list = await _context.RegistrationRequests
@@ -122,113 +125,140 @@ namespace ClinicManagement.Infrastructure.Services.Appoiment
 
                 return ServiceResult<List<DoctorScheduleResponseDto>>.Ok(result);
             }
-            #endregion
+        #endregion
 
-            #region 📅 4. Tạo lịch hẹn mới (dùng RegistrationRequestId)
-            public async Task<ServiceResult<AppointmentResponseDto>> CreateAppointmentAsync(AppointmentRequestDto request, int createdById)
+        #region 📅 4. Tạo lịch hẹn mới (dùng RegistrationRequestId)
+        public async Task<ServiceResult<AppointmentResponseDto>> CreateAppointmentAsync(AppointmentRequestDto request, int createdById)
+        {
+            try
             {
-                try
+                var regRequest = await _context.RegistrationRequests
+                    .Include(r => r.Exam)
+                    .FirstOrDefaultAsync(r => r.RegistrationRequestId == request.RegistrationRequestId);
+
+                if (regRequest == null)
+                    return ServiceResult<AppointmentResponseDto>.Fail("Không tìm thấy yêu cầu đăng ký khám.");
+
+                if (regRequest.Status != "Paid" && regRequest.Status != "Direct_Payment")
+                    return ServiceResult<AppointmentResponseDto>.Fail("Bệnh nhân chưa thanh toán hoặc không đủ điều kiện đặt lịch.");
+
+                var exam = regRequest.Exam!;
+                var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Email == regRequest.Email);
+                if (patient == null)
+                    return ServiceResult<AppointmentResponseDto>.Fail("Không tìm thấy bệnh nhân tương ứng.");
+
+                // Kiểm tra ca làm việc
+                var workPatterns = await _context.DoctorWorkPatterns
+                    .Where(w => w.DoctorId == request.DoctorId &&
+                                w.DayOfWeek == request.StartTime.DayOfWeek &&
+                                w.IsWorking)
+                    .ToListAsync();
+
+                if (!workPatterns.Any())
                 {
-                    var regRequest = await _context.RegistrationRequests
-                        .Include(r => r.Exam)
-                        .FirstOrDefaultAsync(r => r.RegistrationRequestId == request.RegistrationRequestId);
-
-                    if (regRequest == null)
-                        return ServiceResult<AppointmentResponseDto>.Fail("Không tìm thấy yêu cầu đăng ký khám.");
-
-                    if (regRequest.Status != "Paid" && regRequest.Status != "Direct_Payment")
-                        return ServiceResult<AppointmentResponseDto>.Fail("Bệnh nhân chưa thanh toán hoặc không đủ điều kiện đặt lịch.");
-
-                    var exam = regRequest.Exam!;
-                    var patient = await _context.Patients.FirstOrDefaultAsync(p => p.Email == regRequest.Email);
-                    if (patient == null)
-                        return ServiceResult<AppointmentResponseDto>.Fail("Không tìm thấy bệnh nhân tương ứng.");
-
-                    // Kiểm tra bác sĩ có trong khung giờ làm việc
-                    var workPatterns = await _context.DoctorWorkPatterns
-                        .Where(w => w.DoctorId == request.DoctorId &&
-                                    w.DayOfWeek == request.StartTime.DayOfWeek &&
-                                    w.IsWorking)
+                    workPatterns = await _context.WorkPatternTemplates
+                        .Where(t => t.DayOfWeek == request.StartTime.DayOfWeek && t.IsActive)
+                        .Select(t => new DoctorWorkPattern
+                        {
+                            StartTime = t.StartTime,
+                            EndTime = t.EndTime,
+                            SlotMinutes = t.SlotMinutes,
+                            IsWorking = true
+                        })
                         .ToListAsync();
-
-                    if (!workPatterns.Any())
-                    {
-                        workPatterns = await _context.WorkPatternTemplates
-                            .Where(t => t.DayOfWeek == request.StartTime.DayOfWeek && t.IsActive)
-                            .Select(t => new DoctorWorkPattern
-                            {
-                                StartTime = t.StartTime,
-                                EndTime = t.EndTime,
-                                SlotMinutes = t.SlotMinutes,
-                                IsWorking = true
-                            })
-                            .ToListAsync();
-                    }
-
-                    bool inWorkingTime = workPatterns.Any(w =>
-                        request.StartTime.TimeOfDay >= w.StartTime &&
-                        request.EndTime.TimeOfDay <= w.EndTime);
-
-                    if (!inWorkingTime)
-                        return ServiceResult<AppointmentResponseDto>.Fail("Bác sĩ không làm việc trong khung giờ này.");
-
-                    bool conflict = await _context.Appointments.AnyAsync(a =>
-                        a.DoctorId == request.DoctorId &&
-                        a.StartTime < request.EndTime &&
-                        a.EndTime > request.StartTime &&
-                        a.Status != AppointmentStatus.Cancelled);
-
-                    if (conflict)
-                        return ServiceResult<AppointmentResponseDto>.Fail("Khung giờ này đã có lịch hẹn khác.");
-
-                    var appointment = new Appointment
-                    {
-                        PatientId = patient.PatientUserId,
-                        DoctorId = request.DoctorId,
-                        ExamId = regRequest.ExamId,
-                        StartTime = request.StartTime,
-                        EndTime = request.EndTime,
-                        Note = request.Note,
-                        CreatedById = createdById,
-                        Status = AppointmentStatus.Pending,
-                        TotalFee = regRequest.Fee ?? exam.Price,
-                        PaymentMethod = "VNPay",
-                        IsPaid = true,
-                        CreatedAtUtc = DateTime.UtcNow
-                    };
-
-                    _context.Appointments.Add(appointment);
-                    await _context.SaveChangesAsync();
-
-                    regRequest.AppointmentId = appointment.AppointmentId;
-                    regRequest.Status = "Scheduled";
-                    regRequest.UpdatedAtUtc = DateTime.UtcNow;
-                    await _context.SaveChangesAsync();
-
-                    var doctor = await _context.Employees.FindAsync(request.DoctorId);
-
-                    var response = new AppointmentResponseDto
-                    {
-                        AppointmentId = appointment.AppointmentId,
-                        DoctorName = doctor?.FullName ?? "",
-                        PatientName = regRequest.FullName,
-                        ExamName = exam.Name,
-                        TotalFee = appointment.TotalFee,
-                        StartTime = appointment.StartTime,
-                        EndTime = appointment.EndTime,
-                        Status = appointment.Status.ToString(),
-                        Note = appointment.Note,
-                        PaymentMethod = appointment.PaymentMethod,
-                        IsPaid = appointment.IsPaid
-                    };
-
-                    return ServiceResult<AppointmentResponseDto>.Ok(response, "Đặt lịch thành công.");
                 }
-                catch (Exception ex)
+
+                bool inWorkingTime = workPatterns.Any(w =>
+                    request.StartTime.TimeOfDay >= w.StartTime &&
+                    request.EndTime.TimeOfDay <= w.EndTime);
+
+                if (!inWorkingTime)
+                    return ServiceResult<AppointmentResponseDto>.Fail("Bác sĩ không làm việc trong khung giờ này.");
+
+                bool conflict = await _context.Appointments.AnyAsync(a =>
+                    a.DoctorId == request.DoctorId &&
+                    a.StartTime < request.EndTime &&
+                    a.EndTime > request.StartTime &&
+                    a.Status != AppointmentStatus.Cancelled);
+
+                if (conflict)
+                    return ServiceResult<AppointmentResponseDto>.Fail("Khung giờ này đã có lịch hẹn khác.");
+
+                var appointment = new Appointment
                 {
-                    return ServiceResult<AppointmentResponseDto>.Fail("Lỗi khi đặt lịch: " + ex.Message);
+                    PatientId = patient.PatientUserId,
+                    DoctorId = request.DoctorId,
+                    ExamId = regRequest.ExamId,
+                    StartTime = request.StartTime,
+                    EndTime = request.EndTime,
+                    Note = request.Note,
+                    CreatedById = createdById,
+                    Status = AppointmentStatus.Pending,
+                    TotalFee = regRequest.Fee ?? exam.Price,
+                    PaymentMethod = "VNPay",
+                    IsPaid = true,
+                    CreatedAtUtc = NowVN
+                };
+
+                _context.Appointments.Add(appointment);
+                await _context.SaveChangesAsync();
+
+                regRequest.AppointmentId = appointment.AppointmentId;
+                regRequest.Status = "Scheduled";
+                regRequest.UpdatedAtUtc = NowVN;
+                await _context.SaveChangesAsync();
+
+                // Lấy thông tin bác sĩ để gửi mail
+                var doctor = await _context.Employees.FindAsync(request.DoctorId);
+
+                // ✅ Gửi email cho bệnh nhân: thông báo đã đặt lịch (trạng thái Pending)
+                if (!string.IsNullOrWhiteSpace(regRequest.Email))
+                {
+                    var apptDate = appointment.StartTime.ToString("HH:mm dd/MM/yyyy"); // VN style
+                    string subject = $"[ClinicCare] Đã tiếp nhận lịch hẹn của bạn - {apptDate}";
+                    string body = $@"
+<div style='font-family:Arial; line-height:1.6'>
+  <h2 style='color:#2A4D9B;'>Xác nhận đặt lịch hẹn</h2>
+  <p>Xin chào <strong>{regRequest.FullName}</strong>,</p>
+  <p>Chúng tôi đã tiếp nhận yêu cầu đặt lịch của bạn.</p>
+  <ul>
+    <li><strong>Dịch vụ:</strong> {exam.Name}</li>
+    <li><strong>Bác sĩ:</strong> {doctor?.FullName}</li>
+    <li><strong>Thời gian:</strong> {apptDate}</li>
+    <li><strong>Ghi chú:</strong> {(string.IsNullOrWhiteSpace(appointment.Note) ? "(Không)" : appointment.Note)}</li>
+    <li><strong>Chi phí dự kiến:</strong> {(appointment.TotalFee ?? 0):N0} VNĐ</li>
+    <li><strong>Trạng thái:</strong> {appointment.Status}</li>
+  </ul>
+  <p>Chúng tôi sẽ sớm <strong>xác nhận</strong> hoặc <strong>điều chỉnh</strong> lịch nếu cần.</p>
+  <hr style='border:none;border-top:1px solid #ccc;margin:20px 0'/>
+  <p>Trân trọng,<br/>Đội ngũ ClinicCare</p>
+</div>";
+
+                    await _email.SendEmailAsync(regRequest.Email, subject, body);
                 }
+
+                var response = new AppointmentResponseDto
+                {
+                    AppointmentId = appointment.AppointmentId,
+                    DoctorName = doctor?.FullName ?? "",
+                    PatientName = regRequest.FullName,
+                    ExamName = exam.Name,
+                    TotalFee = appointment.TotalFee,
+                    StartTime = appointment.StartTime,
+                    EndTime = appointment.EndTime,
+                    Status = appointment.Status.ToString(),
+                    Note = appointment.Note,
+                    PaymentMethod = appointment.PaymentMethod,
+                    IsPaid = appointment.IsPaid
+                };
+
+                return ServiceResult<AppointmentResponseDto>.Ok(response, "Đặt lịch thành công.");
             }
+            catch (Exception ex)
+            {
+                return ServiceResult<AppointmentResponseDto>.Fail("Lỗi khi đặt lịch: " + ex.Message);
+            }
+        }
         #endregion
 
         #region  5. Chi tiết / Xoá / Duyệt
@@ -293,11 +323,11 @@ namespace ClinicManagement.Infrastructure.Services.Appoiment
                 .Include(a => a.Exam)
                 .AsQueryable();
 
-            // 🔹 Lọc theo trạng thái (nếu có)
+            // Lọc theo trạng thái
             if (!string.IsNullOrEmpty(status) && Enum.TryParse<AppointmentStatus>(status, true, out var parsedStatus))
                 query = query.Where(a => a.Status == parsedStatus);
 
-            // 🔹 Tìm kiếm theo email hoặc tên bệnh nhân / bác sĩ
+            // Tìm kiếm theo email 
             if (!string.IsNullOrWhiteSpace(keyword))
             {
                 var kw = keyword.Trim().ToLower();
@@ -307,7 +337,7 @@ namespace ClinicManagement.Infrastructure.Services.Appoiment
                     a.Doctor.FullName.ToLower().Contains(kw));
             }
 
-            // 🔹 Mặc định sắp theo thời gian gần nhất
+            
             var list = await query
                 .OrderByDescending(a => a.StartTime)
                 .Select(a => new AppointmentResponseDto

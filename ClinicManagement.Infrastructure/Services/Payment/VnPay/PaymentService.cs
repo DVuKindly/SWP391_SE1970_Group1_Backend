@@ -83,10 +83,13 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
             return paymentUrl;
         }
 
+        public static DateTime NowVN => DateTime.UtcNow.AddHours(7);
 
 
         public async Task<bool> ProcessReturnAsync(IQueryCollection query)
         {
+
+
             bool isValid = _vnPayService.ValidateResponse(query);
             string txnRef = query["vnp_TxnRef"].ToString();
             string responseCode = query["vnp_ResponseCode"].ToString();
@@ -123,14 +126,17 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
                         );
                 }
 
+
                 if (reg != null)
                 {
-                
+                    transaction.PaymentDate = NowVN;
+
+
                     reg.Status = "Paid";
                     reg.IsProcessed = true;
-                    reg.ProcessedAt = DateTime.UtcNow;
+                    reg.ProcessedAt = NowVN;
                     reg.Fee = reg.Exam?.Price ?? transaction.Amount;
-                    reg.UpdatedAtUtc = DateTime.UtcNow;
+                    reg.UpdatedAtUtc = NowVN;
 
                
                     var invoice = new Invoice
@@ -139,7 +145,7 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
                         RegistrationRequestId = reg.RegistrationRequestId,
                         PaymentTransactionId = transaction.TransactionId,
                         TotalAmount = transaction.Amount,
-                        IssuedDate = DateTime.UtcNow,
+                        IssuedDate = NowVN,
                         IssuedBy = "System Auto",
                         Note = $"Thanh toán VNPay thành công - Mã GD: {transaction.TransactionCode}"
                     };
