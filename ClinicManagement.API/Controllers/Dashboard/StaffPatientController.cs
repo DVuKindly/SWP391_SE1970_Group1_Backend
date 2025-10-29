@@ -70,6 +70,15 @@ namespace ClinicManagement.API.Controllers.Dashboard {
             var result = await _service.ExecuteDirectPaymentAsync(id, staffId);
             return result.Success ? Ok(result) : BadRequest(result);
         }
-
+        [HttpGet("registrations_Filter")]
+        public async Task<IActionResult> GetAll(
+                  [FromQuery] string? status,
+                  [FromQuery] string? email,
+                  [FromQuery] int page = 1,
+                  [FromQuery] int pageSize = 10)
+        {
+            var result = await _service.GetRequestsAsync(status, email, page, pageSize);
+            return Ok(result);
+        }
     }
 }

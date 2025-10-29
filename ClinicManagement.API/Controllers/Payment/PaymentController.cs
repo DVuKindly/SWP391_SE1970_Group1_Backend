@@ -1,6 +1,8 @@
-﻿using ClinicManagement.Infrastructure.Services.Payment.VNPAY;
+﻿using ClinicManagement.Infrastructure.Persistence;
+using ClinicManagement.Infrastructure.Services.Payment.VNPAY;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace ClinicManagement.API.Controllers.Payment
 {
@@ -147,6 +149,132 @@ namespace ClinicManagement.API.Controllers.Payment
                 return Content(html, "text/html");
             }
         }
+
+        [HttpGet("invoice/{transactionId}")]
+        public async Task<IActionResult> GetInvoice(int transactionId, [FromServices] ClinicDbContext _context)
+        {
+            var invoice = await _context.Invoices
+                .Include(i => i.RegistrationRequest)
+                    .ThenInclude(r => r.Exam)
+                .Include(i => i.PaymentTransaction)
+                .FirstOrDefaultAsync(i => i.PaymentTransactionId == transactionId);
+
+            if (invoice == null)
+            {
+                string htmlNotFound = @"
+        <html><body style='font-family:Arial;text-align:center;padding-top:100px'>
+            <h1 style='color:#d32f2f'>❌ Không tìm thấy hóa đơn</h1>
+            <p>Hóa đơn không tồn tại hoặc chưa được tạo cho giao dịch này.</p>
+            <a href='http://localhost:5173' style='color:#2A4D9B;text-decoration:none;font-weight:bold'>
+                Về trang chủ
+            </a>
+        </body></html>";
+                return Content(htmlNotFound, "text/html");
+            }
+
+            var reg = invoice.RegistrationRequest;
+            var examName = reg.Exam?.Name ?? "Gói khám chưa xác định";
+            var amount = invoice.TotalAmount.ToString("N0");
+
+            string html = $@"
+    <html lang='vi'>
+    <head>
+        <meta charset='utf-8'/>
+        <title>Hóa đơn thanh toán - {invoice.InvoiceCode}</title>
+        <style>
+            body {{
+                font-family: Arial;
+                background: #f7f9ff;
+                color: #333;
+                line-height: 1.6;
+                padding: 40px;
+            }}
+            .invoice {{
+                background: white;
+                border-radius: 10px;
+                padding: 30px 50px;
+                max-width: 700px;
+                margin: auto;
+                box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            }}
+            .header {{
+                text-align: center;
+                border-bottom: 2px solid #2A4D9B;
+                padding-bottom: 15px;
+                margin-bottom: 30px;
+            }}
+            .header h1 {{
+                color: #2A4D9B;
+                margin-bottom: 5px;
+            }}
+            table {{
+                width: 100%;
+                border-collapse: collapse;
+                margin-top: 20px;
+            }}
+            th, td {{
+                padding: 10px;
+                border-bottom: 1px solid #ddd;
+                text-align: left;
+            }}
+            th {{
+                background: #eaf0ff;
+            }}
+            .total {{
+                text-align: right;
+                font-weight: bold;
+                color: #2A4D9B;
+            }}
+            .footer {{
+                margin-top: 40px;
+                text-align: center;
+                font-size: 14px;
+                color: #555;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class='invoice'>
+            <div class='header'>
+                <h1>ClinicCare</h1>
+                <p>Hóa đơn thanh toán dịch vụ</p>
+            </div>
+
+            <p><strong>Mã hóa đơn:</strong> {invoice.InvoiceCode}</p>
+            <p><strong>Ngày lập:</strong> {invoice.IssuedDate:dd/MM/yyyy HH:mm}</p>
+            <p><strong>Khách hàng:</strong> {reg.FullName}</p>
+            <p><strong>Email:</strong> {reg.Email}</p>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Dịch vụ</th>
+                        <th>Đơn giá (VNĐ)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>{examName}</td>
+                        <td>{amount}</td>
+                    </tr>
+                </tbody>
+            </table>
+
+            <p class='total'>Tổng cộng: {amount} VNĐ</p>
+
+            <div class='footer'>
+                <hr style='margin:20px 0; border:none; border-top:1px solid #ccc;'/>
+                <p>Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của <strong>ClinicCare</strong>.</p>
+                <p><em>Liên hệ hỗ trợ: support@cliniccare.vn</em></p>
+            </div>
+        </div>
+    </body>
+    </html>";
+
+            return Content(html, "text/html");
+        }
+
+
 
     }
 }

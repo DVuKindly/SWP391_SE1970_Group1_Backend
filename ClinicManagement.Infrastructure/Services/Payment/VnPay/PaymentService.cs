@@ -90,40 +90,88 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
             bool isValid = _vnPayService.ValidateResponse(query);
             string txnRef = query["vnp_TxnRef"].ToString();
 
-            // 1️⃣ Tìm giao dịch trong DB
+          
             var transaction = await _context.PaymentTransactions
+                .Include(t => t.RegistrationRequest)
+                .ThenInclude(r => r.Exam)
                 .FirstOrDefaultAsync(x => x.TransactionCode == txnRef);
 
             if (transaction == null)
                 return false;
 
-            // 2️⃣ Lưu dữ liệu phản hồi từ VNPay
+     
             transaction.ResponseData = string.Join("&", query.Select(q => $"{q.Key}={q.Value}"));
-            transaction.PaymentDate = DateTime.Now;
+            transaction.PaymentDate = DateTime.UtcNow;
             transaction.Status = isValid ? "Success" : "Failed";
 
-            // 3️⃣ Nếu thanh toán thành công, cập nhật RegistrationRequest
+        
             if (isValid)
             {
-                // Tìm theo Appointment hoặc dựa trên PaymentTransaction gần nhất
-                var reg = await _context.RegistrationRequests
-                    .OrderByDescending(r => r.CreatedAtUtc)
-                    .FirstOrDefaultAsync(r =>
-                        r.AppointmentId == transaction.AppointmentId ||
-                        (r.Status == "Contacted" && (r.Fee == transaction.Amount || r.Exam!.Price == transaction.Amount))
-                    );
+                var reg = transaction.RegistrationRequest;
+
+                if (reg == null)
+                {
+              
+                    reg = await _context.RegistrationRequests
+                        .Include(r => r.Exam)
+                        .OrderByDescending(r => r.CreatedAtUtc)
+                        .FirstOrDefaultAsync(r =>
+                            r.AppointmentId == transaction.AppointmentId ||
+                            (r.Status == "Contacted" &&
+                             (r.Fee == transaction.Amount || r.Exam!.Price == transaction.Amount))
+                        );
+                }
 
                 if (reg != null)
                 {
+                
                     reg.Status = "Paid";
-                    reg.ProcessedAt = DateTime.Now;
                     reg.IsProcessed = true;
+                    reg.ProcessedAt = DateTime.UtcNow;
                     reg.Fee = reg.Exam?.Price ?? transaction.Amount;
+                    reg.UpdatedAtUtc = DateTime.UtcNow;
+
+               
+                    var invoice = new Invoice
+                    {
+                        InvoiceCode = $"INV-{DateTime.UtcNow:yyyyMMddHHmmss}-{reg.RegistrationRequestId}",
+                        RegistrationRequestId = reg.RegistrationRequestId,
+                        PaymentTransactionId = transaction.TransactionId,
+                        TotalAmount = transaction.Amount,
+                        IssuedDate = DateTime.UtcNow,
+                        IssuedBy = "System Auto",
+                        Note = $"Thanh toán VNPay thành công - Mã GD: {transaction.TransactionCode}"
+                    };
+
+                    _context.Invoices.Add(invoice);
+
+         
+                    if (!string.IsNullOrEmpty(reg.Email))
+                    {
+                        string subject = $"Hóa đơn thanh toán - {reg.FullName}";
+                        string body = $@"
+                <div style='font-family:Arial; line-height:1.6'>
+                    <h2 style='color:#2A4D9B;'>ClinicCare Invoice</h2>
+                    <p>Xin chào <strong>{reg.FullName}</strong>,</p>
+                    <p>Bạn đã thanh toán thành công gói khám 
+                       <strong>{reg.Exam?.Name}</strong> với số tiền 
+                       <strong>{transaction.Amount:N0} VNĐ</strong>.</p>
+                    <p><strong>Mã hóa đơn:</strong> {invoice.InvoiceCode}</p>
+                    <p><strong>Ngày lập:</strong> {invoice.IssuedDate:dd/MM/yyyy HH:mm}</p>
+                    <p><strong>Mã giao dịch:</strong> {transaction.TransactionCode}</p>
+                    <hr style='border:none;border-top:1px solid #ccc;margin:20px 0'/>
+                    <p>Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của chúng tôi.</p>
+                    <p>Trân trọng,<br/>Đội ngũ ClinicCare</p>
+                </div>";
+
+                        await _emailService.SendEmailAsync(reg.Email, subject, body);
+                    }
                 }
             }
 
             await _context.SaveChangesAsync();
             return isValid;
         }
+
     }
 }

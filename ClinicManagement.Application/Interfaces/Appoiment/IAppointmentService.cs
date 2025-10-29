@@ -1,4 +1,5 @@
 ﻿using ClinicManagement.Application.DTOS.Request.Appointment;
+using ClinicManagement.Application.DTOS.Request.Dashboard;
 using ClinicManagement.Application.DTOS.Response.Appoitment;
 using System;
 using System.Collections.Generic;
@@ -17,5 +18,8 @@ namespace ClinicManagement.Application.Interfaces.Appoiment
         Task<ServiceResult<bool>> DeleteAppointmentAsync(int id);
         Task<ServiceResult<List<EligiblePatientResponseDto>>> GetEligiblePatientsAsync();
         Task<ServiceResult<List<DoctorScheduleResponseDto>>> GetAllDoctorsWithWorkPatternsAsync();
+
+        Task<ServiceResult<List<AppointmentResponseDto>>> GetAllAppointmentsAsync(string? status = null, string? keyword = null);
+
     }
 }

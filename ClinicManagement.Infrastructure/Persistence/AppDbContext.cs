@@ -10,7 +10,9 @@
             // DbSet cho tất cả entity
             public DbSet<Patient> Patients { get; set; } = default!;
             public DbSet<Employee> Employees { get; set; } = default!;
-            public DbSet<Role> Roles { get; set; } = default!;
+        public DbSet<Invoice> Invoices { get; set; } = default!;
+
+        public DbSet<Role> Roles { get; set; } = default!;
             public DbSet<Permission> Permissions { get; set; } = default!;
             public DbSet<EmployeeRole> EmployeeRoles { get; set; } = default!;
             public DbSet<RolePermission> RolePermissions { get; set; } = default!;
