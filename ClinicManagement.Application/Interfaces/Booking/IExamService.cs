@@ -13,6 +13,7 @@ namespace ClinicManagement.Application.Interfaces.Booking
     {
         Task<ServiceResult<List<ExamResponseDto>>> GetAllExamsAsync(bool includeInactive = false);
         Task<ServiceResult<ExamResponseDto>> GetExamDetailAsync(int examId);
+        Task<ServiceResult<ExamResponseDto>> UpdateExamAsync(int examId, ExamRequestDto request);
 
 
         // ✅ Thêm mới

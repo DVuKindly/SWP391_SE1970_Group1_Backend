@@ -3,6 +3,8 @@ using ClinicManagement.Application.Interfaces.Booking;
 using ClinicManagement.Application.Interfaces.Department;
 using ClinicManagement.Application.Interfaces.Email;
 using ClinicManagement.Application.Interfaces.JWT;
+using ClinicManagement.Application.Interfaces.Prescription;
+using ClinicManagement.Application.Interfaces.Report;
 using ClinicManagement.Application.Interfaces.Services.Auth;
 using ClinicManagement.Application.Interfaces.Services.Dashboard;
 using ClinicManagement.Application.Interfaces.Services.Registration;
@@ -16,10 +18,13 @@ using ClinicManagement.Infrastructure.Services.Email;
 using ClinicManagement.Infrastructure.Services.JWT;
 
 using ClinicManagement.Infrastructure.Services.Payment.VNPAY;
+using ClinicManagement.Infrastructure.Services.Prescription;
 using ClinicManagement.Infrastructure.Services.Registration;
+using ClinicManagement.Infrastructure.Services.Report;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using System.Security;
 
 namespace ClinicManagement.Infrastructure
 {
@@ -41,6 +46,8 @@ namespace ClinicManagement.Infrastructure
             services.AddScoped<IExamService, ExamService>();
             services.AddScoped<IDepartmentService, DepartmentService>();
             services.AddScoped<IAppointmentService, AppointmentService>();
+            services.AddScoped<IPrescriptionService, PrescriptionService>();
+            services.AddScoped<IRevenueService, RevenueService>();
             // JWT & Role Services
             services.AddScoped<IJwtService, JwtService>();
             services.AddScoped<RoleService>();

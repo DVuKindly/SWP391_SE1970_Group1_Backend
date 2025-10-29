@@ -27,6 +27,8 @@
             public DbSet<DoctorLeave> DoctorLeaves { get; set; } = default!;
             public DbSet<WorkPatternTemplate> WorkPatternTemplates { get; set; } = default!;
         public DbSet<PaymentTransaction> PaymentTransactions { get; set; } = default!;
+        public DbSet<Prescription> Prescriptions { get; set; } = default!;
+        public DbSet<PrescriptionDetail> PrescriptionDetails { get; set; } = default!;
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
             {
@@ -64,8 +66,31 @@
          
                 modelBuilder.Entity<Role>()
                     .HasKey(r => r.RoleId);
+            modelBuilder.Entity<Prescription>()
+    .HasKey(p => p.PrescriptionId);
 
-                modelBuilder.Entity<Permission>()
+            modelBuilder.Entity<Prescription>()
+                .HasOne(p => p.Appointment)
+                .WithMany(a => a.Prescriptions)
+                .HasForeignKey(p => p.AppointmentId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Prescription>()
+                .HasOne(p => p.Staff)
+                .WithMany()
+                .HasForeignKey(p => p.StaffId)
+                .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<PrescriptionDetail>()
+                .HasKey(pd => pd.PrescriptionDetailId);
+
+            modelBuilder.Entity<PrescriptionDetail>()
+                .HasOne(pd => pd.Prescription)
+                .WithMany(p => p.Details)
+                .HasForeignKey(pd => pd.PrescriptionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Permission>()
                     .HasKey(p => p.PermissionId);
 
          

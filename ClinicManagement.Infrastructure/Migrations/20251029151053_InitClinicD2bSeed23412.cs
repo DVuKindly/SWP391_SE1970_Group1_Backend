@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ClinicManagement.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitClinicDb : Migration
+    public partial class InitClinicD2bSeed23412 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -423,6 +423,36 @@ namespace ClinicManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "Prescriptions",
+                columns: table => new
+                {
+                    PrescriptionId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    AppointmentId = table.Column<int>(type: "int", nullable: false),
+                    StaffId = table.Column<int>(type: "int", nullable: false),
+                    Diagnosis = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Note = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Prescriptions", x => x.PrescriptionId);
+                    table.ForeignKey(
+                        name: "FK_Prescriptions_Appointments_AppointmentId",
+                        column: x => x.AppointmentId,
+                        principalTable: "Appointments",
+                        principalColumn: "AppointmentId",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_Prescriptions_Employees_StaffId",
+                        column: x => x.StaffId,
+                        principalTable: "Employees",
+                        principalColumn: "EmployeeUserId",
+                        onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "RegistrationRequests",
                 columns: table => new
                 {
@@ -469,6 +499,30 @@ namespace ClinicManagement.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "PrescriptionDetails",
+                columns: table => new
+                {
+                    PrescriptionDetailId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    PrescriptionId = table.Column<int>(type: "int", nullable: false),
+                    MedicineName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Dosage = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Frequency = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Duration = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Instruction = table.Column<string>(type: "nvarchar(max)", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_PrescriptionDetails", x => x.PrescriptionDetailId);
+                    table.ForeignKey(
+                        name: "FK_PrescriptionDetails_Prescriptions_PrescriptionId",
+                        column: x => x.PrescriptionId,
+                        principalTable: "Prescriptions",
+                        principalColumn: "PrescriptionId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "PaymentTransactions",
                 columns: table => new
                 {
@@ -509,30 +563,64 @@ namespace ClinicManagement.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "Invoices",
+                columns: table => new
+                {
+                    InvoiceId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    InvoiceCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
+                    RegistrationRequestId = table.Column<int>(type: "int", nullable: false),
+                    PaymentTransactionId = table.Column<int>(type: "int", nullable: true),
+                    TotalAmount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
+                    IssuedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    IssuedBy = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    Note = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    FileUrl = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Invoices", x => x.InvoiceId);
+                    table.ForeignKey(
+                        name: "FK_Invoices_PaymentTransactions_PaymentTransactionId",
+                        column: x => x.PaymentTransactionId,
+                        principalTable: "PaymentTransactions",
+                        principalColumn: "TransactionId");
+                    table.ForeignKey(
+                        name: "FK_Invoices_RegistrationRequests_RegistrationRequestId",
+                        column: x => x.RegistrationRequestId,
+                        principalTable: "RegistrationRequests",
+                        principalColumn: "RegistrationRequestId",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.InsertData(
                 table: "Departments",
                 columns: new[] { "DepartmentId", "Code", "CreatedAtUtc", "Description", "IsActive", "Name", "UpdatedAtUtc" },
                 values: new object[,]
                 {
-                    { 1, "CARD", new DateTime(2025, 10, 24, 15, 3, 6, 871, DateTimeKind.Utc).AddTicks(2415), "Khoa Tim mạch", true, "Cardiology", null },
-                    { 2, "NEUR", new DateTime(2025, 10, 24, 15, 3, 6, 871, DateTimeKind.Utc).AddTicks(2417), "Khoa Thần kinh", true, "Neurology", null },
-                    { 3, "DERM", new DateTime(2025, 10, 24, 15, 3, 6, 871, DateTimeKind.Utc).AddTicks(2419), "Khoa Da liễu", true, "Dermatology", null }
+                    { 1, "CARD", new DateTime(2025, 10, 29, 15, 10, 53, 660, DateTimeKind.Utc).AddTicks(7610), "Khoa Tim mạch", true, "Cardiology", null },
+                    { 2, "NEUR", new DateTime(2025, 10, 29, 15, 10, 53, 660, DateTimeKind.Utc).AddTicks(7613), "Khoa Thần kinh", true, "Neurology", null },
+                    { 3, "DERM", new DateTime(2025, 10, 29, 15, 10, 53, 660, DateTimeKind.Utc).AddTicks(7614), "Khoa Da liễu", true, "Dermatology", null }
                 });
 
             migrationBuilder.InsertData(
                 table: "Employees",
                 columns: new[] { "EmployeeUserId", "CreatedAtUtc", "Email", "FullName", "Image", "IsActive", "LastLoginAtUtc", "PasswordHash", "Phone", "RefreshToken", "RefreshTokenExpiry", "UpdatedAtUtc" },
-                values: new object[] { 1, new DateTime(2025, 10, 24, 15, 3, 6, 870, DateTimeKind.Utc).AddTicks(9543), "admin@gmail.com", "Super Admin", null, true, null, "$2a$11$7Pb2XS4fRQWCvUfRhkTNJO2Qib1pTOFjWOX1SQSyIhjNN1CzfXVKC", "0123456789", null, null, null });
+                values: new object[] { 1, new DateTime(2025, 10, 29, 15, 10, 53, 660, DateTimeKind.Utc).AddTicks(6003), "admin@gmail.com", "Super Admin", null, true, null, "$2a$11$7Pb2XS4fRQWCvUfRhkTNJO2Qib1pTOFjWOX1SQSyIhjNN1CzfXVKC", "0123456789", null, null, null });
 
             migrationBuilder.InsertData(
                 table: "Roles",
                 columns: new[] { "RoleId", "CreatedAtUtc", "Description", "Name", "UpdatedAtUtc" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 10, 24, 15, 3, 6, 873, DateTimeKind.Utc).AddTicks(8723), null, "Admin", null },
-                    { 2, new DateTime(2025, 10, 24, 15, 3, 6, 873, DateTimeKind.Utc).AddTicks(8726), null, "Staff_Patient", null },
-                    { 3, new DateTime(2025, 10, 24, 15, 3, 6, 873, DateTimeKind.Utc).AddTicks(8727), null, "Staff_Doctor", null },
-                    { 4, new DateTime(2025, 10, 24, 15, 3, 6, 873, DateTimeKind.Utc).AddTicks(8728), null, "Doctor", null }
+                    { 1, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3863), null, "Admin", null },
+                    { 2, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3865), null, "Staff_Patient", null },
+                    { 3, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3866), null, "Staff_Doctor", null },
+                    { 4, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3867), null, "Doctor", null }
                 });
 
             migrationBuilder.InsertData(
@@ -540,27 +628,27 @@ namespace ClinicManagement.Infrastructure.Migrations
                 columns: new[] { "Id", "CreatedAtUtc", "DayOfWeek", "EndTime", "IsActive", "SlotMinutes", "StartTime", "UpdatedAtUtc" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 10, 24, 15, 3, 6, 873, DateTimeKind.Utc).AddTicks(8764), 1, new TimeSpan(0, 12, 0, 0, 0), true, 60, new TimeSpan(0, 8, 0, 0, 0), null },
-                    { 2, new DateTime(2025, 10, 24, 15, 3, 6, 873, DateTimeKind.Utc).AddTicks(8773), 1, new TimeSpan(0, 17, 0, 0, 0), true, 60, new TimeSpan(0, 13, 0, 0, 0), null },
-                    { 3, new DateTime(2025, 10, 24, 15, 3, 6, 873, DateTimeKind.Utc).AddTicks(8775), 2, new TimeSpan(0, 12, 0, 0, 0), true, 60, new TimeSpan(0, 8, 0, 0, 0), null },
-                    { 4, new DateTime(2025, 10, 24, 15, 3, 6, 873, DateTimeKind.Utc).AddTicks(8776), 2, new TimeSpan(0, 17, 0, 0, 0), true, 60, new TimeSpan(0, 13, 0, 0, 0), null },
-                    { 11, new DateTime(2025, 10, 24, 15, 3, 6, 873, DateTimeKind.Utc).AddTicks(8777), 6, new TimeSpan(0, 12, 0, 0, 0), true, 60, new TimeSpan(0, 8, 0, 0, 0), null },
-                    { 12, new DateTime(2025, 10, 24, 15, 3, 6, 873, DateTimeKind.Utc).AddTicks(8778), 6, new TimeSpan(0, 17, 0, 0, 0), true, 60, new TimeSpan(0, 13, 0, 0, 0), null }
+                    { 1, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3899), 1, new TimeSpan(0, 12, 0, 0, 0), true, 60, new TimeSpan(0, 8, 0, 0, 0), null },
+                    { 2, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3904), 1, new TimeSpan(0, 17, 0, 0, 0), true, 60, new TimeSpan(0, 13, 0, 0, 0), null },
+                    { 3, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3905), 2, new TimeSpan(0, 12, 0, 0, 0), true, 60, new TimeSpan(0, 8, 0, 0, 0), null },
+                    { 4, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3907), 2, new TimeSpan(0, 17, 0, 0, 0), true, 60, new TimeSpan(0, 13, 0, 0, 0), null },
+                    { 11, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3908), 6, new TimeSpan(0, 12, 0, 0, 0), true, 60, new TimeSpan(0, 8, 0, 0, 0), null },
+                    { 12, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3909), 6, new TimeSpan(0, 17, 0, 0, 0), true, 60, new TimeSpan(0, 13, 0, 0, 0), null }
                 });
 
             migrationBuilder.InsertData(
                 table: "EmployeeRoles",
                 columns: new[] { "EmployeeId", "RoleId", "AssignedAtUtc", "AssignedById", "CreatedAtUtc", "UpdatedAtUtc" },
-                values: new object[] { 1, 1, new DateTime(2025, 10, 24, 15, 3, 6, 870, DateTimeKind.Utc).AddTicks(9696), null, new DateTime(2025, 10, 24, 15, 3, 6, 870, DateTimeKind.Utc).AddTicks(9692), null });
+                values: new object[] { 1, 1, new DateTime(2025, 10, 29, 15, 10, 53, 660, DateTimeKind.Utc).AddTicks(6132), null, new DateTime(2025, 10, 29, 15, 10, 53, 660, DateTimeKind.Utc).AddTicks(6130), null });
 
             migrationBuilder.InsertData(
                 table: "Exams",
                 columns: new[] { "ExamId", "CreatedAtUtc", "DepartmentId", "Description", "IsActive", "Name", "Price", "UpdatedAtUtc" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 10, 24, 15, 3, 6, 873, DateTimeKind.Utc).AddTicks(8813), 3, "Tư vấn và khám da liễu tổng quát, không bao gồm xét nghiệm", true, "Khám Da liễu cơ bản", 200000m, null },
-                    { 2, new DateTime(2025, 10, 24, 15, 3, 6, 873, DateTimeKind.Utc).AddTicks(8815), 1, "Kiểm tra nhịp tim, đo ECG, siêu âm tim", true, "Khám Tim mạch chuyên sâu", 500000m, null },
-                    { 3, new DateTime(2025, 10, 24, 15, 3, 6, 873, DateTimeKind.Utc).AddTicks(8817), 2, "Khám lâm sàng, đánh giá triệu chứng thần kinh, tư vấn điều trị", true, "Khám Thần kinh tổng quát", 400000m, null }
+                    { 1, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3935), 3, "Tư vấn và khám da liễu tổng quát, không bao gồm xét nghiệm", true, "Khám Da liễu cơ bản", 200000m, null },
+                    { 2, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3937), 1, "Kiểm tra nhịp tim, đo ECG, siêu âm tim", true, "Khám Tim mạch chuyên sâu", 500000m, null },
+                    { 3, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3939), 2, "Khám lâm sàng, đánh giá triệu chứng thần kinh, tư vấn điều trị", true, "Khám Thần kinh tổng quát", 400000m, null }
                 });
 
             migrationBuilder.CreateIndex(
@@ -641,6 +729,16 @@ namespace ClinicManagement.Infrastructure.Migrations
                 column: "DepartmentId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_Invoices_PaymentTransactionId",
+                table: "Invoices",
+                column: "PaymentTransactionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Invoices_RegistrationRequestId",
+                table: "Invoices",
+                column: "RegistrationRequestId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_Patients_Email",
                 table: "Patients",
                 column: "Email",
@@ -660,6 +758,21 @@ namespace ClinicManagement.Infrastructure.Migrations
                 name: "IX_PaymentTransactions_RegistrationRequestId",
                 table: "PaymentTransactions",
                 column: "RegistrationRequestId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_PrescriptionDetails_PrescriptionId",
+                table: "PrescriptionDetails",
+                column: "PrescriptionId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Prescriptions_AppointmentId",
+                table: "Prescriptions",
+                column: "AppointmentId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Prescriptions_StaffId",
+                table: "Prescriptions",
+                column: "StaffId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_RegistrationRequests_AppointmentId",
@@ -709,7 +822,10 @@ namespace ClinicManagement.Infrastructure.Migrations
                 name: "EmployeeRoles");
 
             migrationBuilder.DropTable(
-                name: "PaymentTransactions");
+                name: "Invoices");
+
+            migrationBuilder.DropTable(
+                name: "PrescriptionDetails");
 
             migrationBuilder.DropTable(
                 name: "RolePermissions");
@@ -718,13 +834,19 @@ namespace ClinicManagement.Infrastructure.Migrations
                 name: "WorkPatternTemplates");
 
             migrationBuilder.DropTable(
-                name: "RegistrationRequests");
+                name: "PaymentTransactions");
+
+            migrationBuilder.DropTable(
+                name: "Prescriptions");
 
             migrationBuilder.DropTable(
                 name: "Permissions");
 
             migrationBuilder.DropTable(
                 name: "Roles");
+
+            migrationBuilder.DropTable(
+                name: "RegistrationRequests");
 
             migrationBuilder.DropTable(
                 name: "Appointments");

@@ -48,5 +48,15 @@ namespace ClinicManagement.API.Controllers.Exam
             var result = await _service.DeleteExamAsync(id, softDelete);
             return result.Success ? Ok(result) : NotFound(result);
         }
+        //  Cập nhật
+        [HttpPut("{id}")]
+        public async Task<IActionResult> Update(int id, [FromBody] ExamRequestDto request)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ServiceResult<string>.Fail("Dữ liệu không hợp lệ."));
+
+            var result = await _service.UpdateExamAsync(id, request);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
     }
 }

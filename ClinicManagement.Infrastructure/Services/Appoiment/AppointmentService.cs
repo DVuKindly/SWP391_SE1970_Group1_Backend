@@ -147,7 +147,7 @@ namespace ClinicManagement.Infrastructure.Services.Appoiment
                 if (patient == null)
                     return ServiceResult<AppointmentResponseDto>.Fail("Không tìm thấy bệnh nhân tương ứng.");
 
-                // Kiểm tra ca làm việc
+                // 🔹 Kiểm tra ca làm việc
                 var workPatterns = await _context.DoctorWorkPatterns
                     .Where(w => w.DoctorId == request.DoctorId &&
                                 w.DayOfWeek == request.StartTime.DayOfWeek &&
@@ -175,6 +175,7 @@ namespace ClinicManagement.Infrastructure.Services.Appoiment
                 if (!inWorkingTime)
                     return ServiceResult<AppointmentResponseDto>.Fail("Bác sĩ không làm việc trong khung giờ này.");
 
+                // 🔹 Kiểm tra trùng lịch
                 bool conflict = await _context.Appointments.AnyAsync(a =>
                     a.DoctorId == request.DoctorId &&
                     a.StartTime < request.EndTime &&
@@ -184,6 +185,17 @@ namespace ClinicManagement.Infrastructure.Services.Appoiment
                 if (conflict)
                     return ServiceResult<AppointmentResponseDto>.Fail("Khung giờ này đã có lịch hẹn khác.");
 
+                // ✅ Xác định phương thức và trạng thái thanh toán
+                string paymentMethod = regRequest.Status switch
+                {
+                    "Paid" => "VNPay",
+                    "Direct_Payment" => "Direct_Payment",
+                    _ => "Unknown"
+                };
+
+                bool isPaid = paymentMethod == "VNPay"; // 🔹 Chỉ VNPay mới coi là đã trả tiền ngay
+
+                // 🔹 Tạo lịch hẹn
                 var appointment = new Appointment
                 {
                     PatientId = patient.PatientUserId,
@@ -195,26 +207,26 @@ namespace ClinicManagement.Infrastructure.Services.Appoiment
                     CreatedById = createdById,
                     Status = AppointmentStatus.Pending,
                     TotalFee = regRequest.Fee ?? exam.Price,
-                    PaymentMethod = "VNPay",
-                    IsPaid = true,
+                    PaymentMethod = paymentMethod,
+                    IsPaid = isPaid,
                     CreatedAtUtc = NowVN
                 };
 
                 _context.Appointments.Add(appointment);
                 await _context.SaveChangesAsync();
 
+                // 🔹 Cập nhật RegistrationRequest
                 regRequest.AppointmentId = appointment.AppointmentId;
                 regRequest.Status = "Scheduled";
                 regRequest.UpdatedAtUtc = NowVN;
                 await _context.SaveChangesAsync();
 
-                // Lấy thông tin bác sĩ để gửi mail
                 var doctor = await _context.Employees.FindAsync(request.DoctorId);
 
-                // ✅ Gửi email cho bệnh nhân: thông báo đã đặt lịch (trạng thái Pending)
+                // ✅ Gửi email xác nhận cho bệnh nhân
                 if (!string.IsNullOrWhiteSpace(regRequest.Email))
                 {
-                    var apptDate = appointment.StartTime.ToString("HH:mm dd/MM/yyyy"); // VN style
+                    var apptDate = appointment.StartTime.ToString("HH:mm dd/MM/yyyy");
                     string subject = $"[ClinicCare] Đã tiếp nhận lịch hẹn của bạn - {apptDate}";
                     string body = $@"
 <div style='font-family:Arial; line-height:1.6'>
@@ -225,13 +237,14 @@ namespace ClinicManagement.Infrastructure.Services.Appoiment
     <li><strong>Dịch vụ:</strong> {exam.Name}</li>
     <li><strong>Bác sĩ:</strong> {doctor?.FullName}</li>
     <li><strong>Thời gian:</strong> {apptDate}</li>
-    <li><strong>Ghi chú:</strong> {(string.IsNullOrWhiteSpace(appointment.Note) ? "(Không)" : appointment.Note)}</li>
+    <li><strong>Phương thức thanh toán:</strong> {(paymentMethod == "VNPay" ? "Thanh toán online (VNPay)" : "Thanh toán tại quầy")}</li>
+    <li><strong>Trạng thái thanh toán:</strong> {(isPaid ? "Đã thanh toán" : "Chưa thanh toán")}</li>
     <li><strong>Chi phí dự kiến:</strong> {(appointment.TotalFee ?? 0):N0} VNĐ</li>
-    <li><strong>Trạng thái:</strong> {appointment.Status}</li>
+    <li><strong>Trạng thái lịch hẹn:</strong> {appointment.Status}</li>
   </ul>
-  <p>Chúng tôi sẽ sớm <strong>xác nhận</strong> hoặc <strong>điều chỉnh</strong> lịch nếu cần.</p>
+  <p>Chúng tôi sẽ sớm xác nhận hoặc điều chỉnh lịch nếu cần.</p>
   <hr style='border:none;border-top:1px solid #ccc;margin:20px 0'/>
-  <p>Trân trọng,<br/>Đội ngũ ClinicCare</p>
+  <p>Trân trọng,<br/>Đội ngũ <strong>ClinicCare</strong></p>
 </div>";
 
                     await _email.SendEmailAsync(regRequest.Email, subject, body);
@@ -260,6 +273,7 @@ namespace ClinicManagement.Infrastructure.Services.Appoiment
             }
         }
         #endregion
+
 
         #region  5. Chi tiết / Xoá / Duyệt
         public async Task<ServiceResult<AppointmentResponseDto>> GetAppointmentDetailAsync(int id)

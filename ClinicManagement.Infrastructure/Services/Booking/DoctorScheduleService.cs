@@ -22,7 +22,7 @@ namespace ClinicManagement.Infrastructure.Services.Booking
             from ??= DateTime.Today;
             to ??= from.Value.AddDays(7);
 
-            // 1️⃣ Lấy danh sách DoctorSchedules thật trong DB
+            //  Lấy danh sách DoctorSchedules thật trong DB
             var schedules = await _ctx.DoctorSchedules
                 .Where(s => s.DoctorId == doctorId && s.StartTime >= from && s.EndTime <= to)
                 .ToListAsync(ct);
@@ -40,7 +40,7 @@ namespace ClinicManagement.Infrastructure.Services.Booking
                 }).ToList();
             }
 
-            // 2️⃣ Nếu chưa có -> generate từ DoctorWorkPattern
+            // Nếu chưa có -> generate từ DoctorWorkPattern
             var patterns = await _ctx.DoctorWorkPatterns
                 .Where(p => p.DoctorId == doctorId && p.IsWorking)
                 .ToListAsync(ct);
@@ -49,7 +49,7 @@ namespace ClinicManagement.Infrastructure.Services.Booking
 
             foreach (var day in EachDay(from.Value, to.Value))
             {
-                var dow = (int)day.DayOfWeek; // 0=Sunday
+                var dow = (int)day.DayOfWeek; 
                 var pattern = patterns.FirstOrDefault(p => (int)p.DayOfWeek == dow);
                 if (pattern == null) continue;
 

@@ -1,6 +1,7 @@
 ﻿using ClinicManagement.Application;
 using ClinicManagement.Application.DTOS.Request.Appointment;
 using ClinicManagement.Application.Interfaces.Services.Dashboard;
+using ClinicManagement.Infrastructure.Services.Dashboard;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -89,5 +90,14 @@ namespace ClinicManagement.API.Controllers.Dashboard {
             var result = await _service.GetRequestsAsync(status, email, page, pageSize);
             return Ok(result);
         }
+
+
+        [HttpPost("{requestId}/mark-examined")]
+        public async Task<IActionResult> MarkAsExamined(int requestId, [FromQuery] int staffId)
+        {
+            var result = await _service.MarkAsExaminedAsync(requestId, staffId);
+            return result.Success ? Ok(result) : BadRequest(result);
+        }
+
     }
 }

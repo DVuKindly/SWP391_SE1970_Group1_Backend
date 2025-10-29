@@ -21,6 +21,38 @@ namespace ClinicManagement.Infrastructure.Services.Booking
         {
             _context = context;
         }
+        public async Task<ServiceResult<ExamResponseDto>> UpdateExamAsync(int examId, ExamRequestDto request)
+        {
+            var exam = await _context.Exams.FindAsync(examId);
+            if (exam == null)
+                return ServiceResult<ExamResponseDto>.Fail("Không tìm thấy gói khám cần cập nhật.");
+
+            // Kiểm tra trùng tên (loại trừ chính nó)
+            bool nameExists = await _context.Exams
+                .AnyAsync(e => e.ExamId != examId && e.Name.ToLower() == request.ExamName.ToLower());
+            if (nameExists)
+                return ServiceResult<ExamResponseDto>.Fail("Tên gói khám đã tồn tại.");
+
+            exam.Name = request.ExamName;
+            exam.Description = request.Description;
+            exam.Price = request.Price;
+            exam.DepartmentId = request.DepartmentId;
+            exam.IsActive = request.IsActive;
+            exam.UpdatedAtUtc = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            var response = new ExamResponseDto
+            {
+                ExamId = exam.ExamId,
+                ExamName = exam.Name,
+                Description = exam.Description,
+                Price = exam.Price,
+                IsActive = exam.IsActive
+            };
+
+            return ServiceResult<ExamResponseDto>.Ok(response, "Cập nhật gói khám thành công.");
+        }
 
         public async Task<ServiceResult<List<ExamResponseDto>>> GetAllExamsAsync(bool includeInactive = false)
         {

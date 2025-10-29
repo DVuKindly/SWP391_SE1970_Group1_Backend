@@ -52,5 +52,7 @@ namespace ClinicManagement.Domain.Entity
 
 
         public ICollection<PaymentTransaction> PaymentTransactions { get; set; } = new List<PaymentTransaction>();
+        public ICollection<Prescription> Prescriptions { get; set; } = new List<Prescription>();
+
     }
 }

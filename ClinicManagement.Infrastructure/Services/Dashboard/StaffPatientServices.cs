@@ -272,6 +272,43 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             return ServiceResult<PagedResult<RegistrationRequestResponseDto>>.Ok(pagedResult);
         }
 
+        //đã khám
+        public async Task<ServiceResult<string>> MarkAsExaminedAsync(int requestId, int staffId)
+        {
+            var req = await _context.RegistrationRequests
+                .Include(r => r.Appointment)
+                .Include(r => r.Exam)
+                .FirstOrDefaultAsync(r => r.RegistrationRequestId == requestId);
+
+            if (req == null)
+                return ServiceResult<string>.Fail("Không tìm thấy đăng ký khám.");
+
+            // Chỉ cho phép chuyển từ Paid hoặc Direct_Payment
+            if (req.Status != "Paid" && req.Status != "Direct_Payment")
+                return ServiceResult<string>.Fail("Chỉ có thể đánh dấu 'Đã khám' nếu đăng ký đã thanh toán.");
+
+            var staff = await _context.Employees.FindAsync(staffId);
+            if (staff == null)
+                return ServiceResult<string>.Fail("Nhân viên không tồn tại.");
+
+            // Cập nhật trạng thái
+            req.Status = "Examined";
+            req.IsProcessed = true;
+            req.HandledById = staffId;
+            req.ProcessedAt = DateTime.UtcNow;
+            req.UpdatedAtUtc = DateTime.UtcNow;
+
+            // Ghi chú nội bộ
+            string prefix = $"[{DateTime.Now:dd/MM/yyyy HH:mm}] {staff.FullName}: ";
+            req.InternalNote = (req.InternalNote ?? "") + "\n" + prefix +
+                $"Đánh dấu đăng ký đã khám thành công. Gói khám: {req.Exam?.Name ?? "N/A"}";
+
+            _context.RegistrationRequests.Update(req);
+            await _context.SaveChangesAsync();
+
+            return ServiceResult<string>.Ok($"Đã cập nhật đăng ký #{requestId} thành 'Đã khám'.");
+        }
+
 
     }
 }
