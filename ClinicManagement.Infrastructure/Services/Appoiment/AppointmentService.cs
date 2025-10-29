@@ -1,5 +1,6 @@
 ﻿using ClinicManagement.Application;
 using ClinicManagement.Application.DTOS.Request.Appointment;
+using ClinicManagement.Application.DTOS.Request.Dashboard;
 using ClinicManagement.Application.DTOS.Response.Appoitment;
 
 using ClinicManagement.Application.Interfaces.Appoiment;
@@ -230,7 +231,7 @@ namespace ClinicManagement.Infrastructure.Services.Appoiment
             }
         #endregion
 
-        #region 🔍 5. Chi tiết / Xoá / Duyệt
+        #region  5. Chi tiết / Xoá / Duyệt
         public async Task<ServiceResult<AppointmentResponseDto>> GetAppointmentDetailAsync(int id)
         {
             var a = await _context.Appointments
@@ -282,6 +283,53 @@ namespace ClinicManagement.Infrastructure.Services.Appoiment
             await _context.SaveChangesAsync();
             return ServiceResult<bool>.Ok(true, "Đã xoá lịch hẹn.");
         }
+
+        // lọc
+        public async Task<ServiceResult<List<AppointmentResponseDto>>> GetAllAppointmentsAsync(string? status = null, string? keyword = null)
+        {
+            var query = _context.Appointments
+                .Include(a => a.Patient)
+                .Include(a => a.Doctor)
+                .Include(a => a.Exam)
+                .AsQueryable();
+
+            // 🔹 Lọc theo trạng thái (nếu có)
+            if (!string.IsNullOrEmpty(status) && Enum.TryParse<AppointmentStatus>(status, true, out var parsedStatus))
+                query = query.Where(a => a.Status == parsedStatus);
+
+            // 🔹 Tìm kiếm theo email hoặc tên bệnh nhân / bác sĩ
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                var kw = keyword.Trim().ToLower();
+                query = query.Where(a =>
+                    a.Patient.Email.ToLower().Contains(kw) ||
+                    a.Patient.FullName.ToLower().Contains(kw) ||
+                    a.Doctor.FullName.ToLower().Contains(kw));
+            }
+
+            // 🔹 Mặc định sắp theo thời gian gần nhất
+            var list = await query
+                .OrderByDescending(a => a.StartTime)
+                .Select(a => new AppointmentResponseDto
+                {
+                    AppointmentId = a.AppointmentId,
+                    DoctorName = a.Doctor.FullName,
+                    PatientName = a.Patient.FullName,
+                    ExamName = a.Exam != null ? a.Exam.Name : "",
+                    TotalFee = a.TotalFee,
+                    StartTime = a.StartTime,
+                    EndTime = a.EndTime,
+                    Status = a.Status.ToString(),
+                    Note = a.Note,
+                    IsPaid = a.IsPaid,
+                    PaymentMethod = a.PaymentMethod,
+                    TransactionCode = a.TransactionCode
+                })
+                .ToListAsync();
+
+            return ServiceResult<List<AppointmentResponseDto>>.Ok(list);
+        }
+
         #endregion
     }
 }

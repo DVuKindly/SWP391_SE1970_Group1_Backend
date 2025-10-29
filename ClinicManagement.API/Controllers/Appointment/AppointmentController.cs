@@ -1,5 +1,6 @@
 ﻿using ClinicManagement.Application.DTOS.Request.Appointment;
 using ClinicManagement.Application.Interfaces.Appoiment;
+using ClinicManagement.Infrastructure.Services.Appoiment;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -40,7 +41,7 @@ namespace ClinicManagement.API.Controllers.Appointment
         }
 
    
-        [HttpGet("doctors")]
+        [HttpGet("scheduledoctors")]
         public async Task<IActionResult> GetDoctorsWithSchedules()
         {
             var result = await _service.GetAllDoctorsWithWorkPatternsAsync();
@@ -77,5 +78,15 @@ namespace ClinicManagement.API.Controllers.Appointment
             var result = await _service.DeleteAppointmentAsync(id);
             return result.Success ? Ok(result) : NotFound(result);
         }
+        [HttpGet("appointments_Filter")]
+        public async Task<IActionResult> GetAllAppointments(
+    [FromQuery] string? status,
+    [FromQuery] string? keyword)
+        {
+            var result = await _service.GetAllAppointmentsAsync(status, keyword);
+            return Ok(result);
+        }
+
+
     }
 }

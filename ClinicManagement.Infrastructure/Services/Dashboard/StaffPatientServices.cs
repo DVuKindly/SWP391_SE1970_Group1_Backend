@@ -1,6 +1,7 @@
 ﻿using ClinicManagement.Application;
 using ClinicManagement.Application.DTOS.Request.Auth;
 using ClinicManagement.Application.DTOS.Request.Booking;
+using ClinicManagement.Application.DTOS.Request.Dashboard;
 using ClinicManagement.Application.DTOS.Response.Auth;
 using ClinicManagement.Application.Interfaces.Services.Dashboard;
 using ClinicManagement.Domain.Entity;
@@ -204,6 +205,72 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             return ServiceResult<string>.Ok($"Đã xác nhận thanh toán trực tiếp cho đăng ký #{requestId} với gói khám '{exam.Name}'.");
         }
 
+
+        // lọc 
+        private static readonly HashSet<string> _validStatuses = new(StringComparer.OrdinalIgnoreCase)
+        {
+            "New", "Contacted", "Invalid", "Direct_Payment", "Paid", "Pending", "Rejected" , "Scheduled"
+        };
+        public async Task<ServiceResult<PagedResult<RegistrationRequestResponseDto>>> GetRequestsAsync(
+           string? status = null,
+           string? email = null,
+           int page = 1,
+           int pageSize = 20)
+        {
+            if (page <= 0) page = 1;
+            if (pageSize <= 0) pageSize = 20;
+
+            var query = _context.RegistrationRequests
+                .AsNoTracking()
+                .Include(r => r.HandledBy)
+                .OrderByDescending(r => r.CreatedAtUtc)
+                .AsQueryable();
+
+            // Lọc trạng thái
+            if (!string.IsNullOrWhiteSpace(status) && _validStatuses.Contains(status))
+            {
+                query = query.Where(r => r.Status == status);
+            }
+
+            // Tìm kiếm email
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                var keyword = email.Trim().ToLower();
+                query = query.Where(r => r.Email.ToLower().Contains(keyword));
+            }
+
+            var totalItems = await query.CountAsync();
+
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(r => new RegistrationRequestResponseDto
+                {
+                    RegistrationRequestId = r.RegistrationRequestId,
+                    FullName = r.FullName,
+                    Email = r.Email,
+                    Phone = r.Phone,
+                    Content = r.Content,
+                    StartDate = r.StartDate,
+                    Status = r.Status,
+                    IsProcessed = r.IsProcessed,
+                    CreatedAtUtc = r.CreatedAtUtc,
+                    HandledBy = r.HandledBy != null ? r.HandledBy.FullName : null,
+                    ProcessedAt = r.ProcessedAt,
+                    InternalNote = r.InternalNote
+                })
+                .ToListAsync();
+
+            var pagedResult = new PagedResult<RegistrationRequestResponseDto>
+            {
+                Page = page,
+                PageSize = pageSize,
+                TotalItems = totalItems,
+                Items = items
+            };
+
+            return ServiceResult<PagedResult<RegistrationRequestResponseDto>>.Ok(pagedResult);
+        }
 
 
     }

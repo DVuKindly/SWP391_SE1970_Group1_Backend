@@ -1,6 +1,8 @@
-﻿using ClinicManagement.Infrastructure.Services.Payment.VNPAY;
+﻿using ClinicManagement.Infrastructure.Persistence;
+using ClinicManagement.Infrastructure.Services.Payment.VNPAY;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace ClinicManagement.API.Controllers.Payment
 {
