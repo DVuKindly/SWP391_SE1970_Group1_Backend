@@ -48,6 +48,7 @@ namespace ClinicManagement.Infrastructure
             services.AddScoped<IAppointmentService, AppointmentService>();
             services.AddScoped<IPrescriptionService, PrescriptionService>();
             services.AddScoped<IRevenueService, RevenueService>();
+            services.AddScoped<IPatientServices, PatientServices>();
             // JWT & Role Services
             services.AddScoped<IJwtService, JwtService>();
             services.AddScoped<RoleService>();

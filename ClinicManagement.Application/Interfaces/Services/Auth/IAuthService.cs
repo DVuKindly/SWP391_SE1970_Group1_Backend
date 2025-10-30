@@ -37,5 +37,8 @@ namespace ClinicManagement.Application.Interfaces.Services.Auth
         // google login
         Task<ServiceResult<AuthResponse>> GoogleLoginPatientAsync(GoogleLoginRequest req, CancellationToken ct = default);
 
+
+        Task<ServiceResult<bool>> ChangePasswordPatientAsync(ChangePasswordRequest req, CancellationToken ct = default);
+
     }
 }

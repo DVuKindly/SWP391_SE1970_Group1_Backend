@@ -37,7 +37,13 @@ namespace ClinicManagement.API.Controllers.Auth
             if (result is null) return Unauthorized("Invalid Google token.");
             return Ok(result);
         }
-
+        [HttpPost("change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest req, CancellationToken ct)
+        {
+            var result = await _auth.ChangePasswordPatientAsync(req, ct);
+            if (!result.Success) return BadRequest(result);
+            return Ok(result);
+        }
 
     }
 }

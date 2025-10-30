@@ -490,5 +490,37 @@ namespace ClinicManagement.Infrastructure.Services.Auth
             }, "Tạo tài khoản với nhiều vai trò thành công.");
         }
 
+
+        public async Task<ServiceResult<bool>> ChangePasswordPatientAsync(ChangePasswordRequest req, CancellationToken ct = default)
+        {
+            try
+            {
+                var email = (req.Email ?? string.Empty).Trim().ToLowerInvariant();
+                if (string.IsNullOrWhiteSpace(email) ||
+                    string.IsNullOrWhiteSpace(req.OldPassword) ||
+                    string.IsNullOrWhiteSpace(req.NewPassword))
+                    return ServiceResult<bool>.Fail("Vui lòng nhập đầy đủ thông tin.");
+
+                if (req.NewPassword != req.ConfirmNewPassword)
+                    return ServiceResult<bool>.Fail("Mật khẩu xác nhận không khớp.");
+
+                var patient = await _ctx.Patients.FirstOrDefaultAsync(p => p.Email == email, ct);
+                if (patient == null)
+                    return ServiceResult<bool>.Fail("Không tìm thấy tài khoản bệnh nhân.");
+
+                if (!BCrypt.Net.BCrypt.Verify(req.OldPassword, patient.PasswordHash))
+                    return ServiceResult<bool>.Fail("Mật khẩu cũ không chính xác.");
+
+                patient.PasswordHash = BCrypt.Net.BCrypt.HashPassword(req.NewPassword);
+           
+
+                await _ctx.SaveChangesAsync(ct);
+                return ServiceResult<bool>.Ok(true, "Đổi mật khẩu thành công.");
+            }
+            catch (Exception ex)
+            {
+                return ServiceResult<bool>.Fail($"Lỗi đổi mật khẩu: {ex.Message}");
+            }
+        }
     }
 }
