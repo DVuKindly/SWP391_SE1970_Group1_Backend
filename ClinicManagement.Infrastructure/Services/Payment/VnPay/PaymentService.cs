@@ -1,4 +1,5 @@
-﻿using ClinicManagement.Application.Interfaces.Email;
+﻿using ClinicManagement.Application;
+using ClinicManagement.Application.Interfaces.Email;
 using ClinicManagement.Domain.Entity;
 using ClinicManagement.Infrastructure.Persistence;
 using ClinicManagement.Infrastructure.Services.Payment.VNPAY;
@@ -83,102 +84,159 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
             return paymentUrl;
         }
 
-        public static DateTime NowVN => DateTime.UtcNow.AddHours(7);
 
 
         public async Task<bool> ProcessReturnAsync(IQueryCollection query)
         {
-
-
             bool isValid = _vnPayService.ValidateResponse(query);
             string txnRef = query["vnp_TxnRef"].ToString();
             string responseCode = query["vnp_ResponseCode"].ToString();
 
-          
             var transaction = await _context.PaymentTransactions
-                .Include(t => t.RegistrationRequest)
-                .ThenInclude(r => r.Exam)
                 .FirstOrDefaultAsync(x => x.TransactionCode == txnRef);
 
             if (transaction == null)
                 return false;
 
-     
             transaction.ResponseData = string.Join("&", query.Select(q => $"{q.Key}={q.Value}"));
-            transaction.PaymentDate = DateTime.UtcNow;
-            transaction.Status = isValid ? "Success" : "Failed";
+            transaction.PaymentDate = DateTime.Now;
 
-        
-            if (isValid)
+            if (isValid && responseCode == "00")
             {
-                var reg = transaction.RegistrationRequest;
-
-                if (reg == null)
+                if (transaction.Status != "Success")
                 {
-              
-                    reg = await _context.RegistrationRequests
-                        .Include(r => r.Exam)
+                    transaction.Status = "Success";
+
+                    var reg = await _context.RegistrationRequests
                         .OrderByDescending(r => r.CreatedAtUtc)
                         .FirstOrDefaultAsync(r =>
                             r.AppointmentId == transaction.AppointmentId ||
-                            (r.Status == "Contacted" &&
-                             (r.Fee == transaction.Amount || r.Exam!.Price == transaction.Amount))
+                            (r.Status == "Contacted" && (r.Fee == transaction.Amount || r.Exam!.Price == transaction.Amount))
                         );
-                }
 
-
-                if (reg != null)
-                {
-                    transaction.PaymentDate = NowVN;
-
-
-                    reg.Status = "Paid";
-                    reg.IsProcessed = true;
-                    reg.ProcessedAt = NowVN;
-                    reg.Fee = reg.Exam?.Price ?? transaction.Amount;
-                    reg.UpdatedAtUtc = NowVN;
-
-               
-                    var invoice = new Invoice
+                    if (reg != null)
                     {
-                        InvoiceCode = $"INV-{DateTime.UtcNow:yyyyMMddHHmmss}-{reg.RegistrationRequestId}",
-                        RegistrationRequestId = reg.RegistrationRequestId,
-                        PaymentTransactionId = transaction.TransactionId,
-                        TotalAmount = transaction.Amount,
-                        IssuedDate = NowVN,
-                        IssuedBy = "System Auto",
-                        Note = $"Thanh toán VNPay thành công - Mã GD: {transaction.TransactionCode}"
-                    };
-
-                    _context.Invoices.Add(invoice);
-
-         
-                    if (!string.IsNullOrEmpty(reg.Email))
-                    {
-                        string subject = $"Hóa đơn thanh toán - {reg.FullName}";
-                        string body = $@"
-                <div style='font-family:Arial; line-height:1.6'>
-                    <h2 style='color:#2A4D9B;'>ClinicCare Invoice</h2>
-                    <p>Xin chào <strong>{reg.FullName}</strong>,</p>
-                    <p>Bạn đã thanh toán thành công gói khám 
-                       <strong>{reg.Exam?.Name}</strong> với số tiền 
-                       <strong>{transaction.Amount:N0} VNĐ</strong>.</p>
-                    <p><strong>Mã hóa đơn:</strong> {invoice.InvoiceCode}</p>
-                    <p><strong>Ngày lập:</strong> {invoice.IssuedDate:dd/MM/yyyy HH:mm}</p>
-                    <p><strong>Mã giao dịch:</strong> {transaction.TransactionCode}</p>
-                    <hr style='border:none;border-top:1px solid #ccc;margin:20px 0'/>
-                    <p>Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của chúng tôi.</p>
-                    <p>Trân trọng,<br/>Đội ngũ ClinicCare</p>
-                </div>";
-
-                        await _emailService.SendEmailAsync(reg.Email, subject, body);
+                        reg.Status = "Paid";
+                        reg.ProcessedAt = DateTime.Now;
+                        reg.IsProcessed = true;
+                        reg.Fee = reg.Exam?.Price ?? transaction.Amount;
                     }
                 }
+            }
+            else
+            {
+                if (transaction.Status != "Success")
+                    transaction.Status = "Failed";
             }
 
             await _context.SaveChangesAsync();
             return isValid;
         }
+
+
+        public async Task<ServiceResult<Invoice>> CreateInvoiceForDirectPaymentAsync(int requestId, int staffId)
+        {
+            var req = await _context.RegistrationRequests
+                .Include(r => r.Exam)
+                .Include(r => r.Appointment)
+                    .ThenInclude(a => a.Patient)
+                .Include(r => r.Appointment)
+                    .ThenInclude(a => a.Doctor)
+                .FirstOrDefaultAsync(r => r.RegistrationRequestId == requestId);
+
+            if (req == null)
+                return ServiceResult<Invoice>.Fail("Không tìm thấy đăng ký khám.");
+
+            // 🔹 Kiểm tra trạng thái hợp lệ
+            if (req.Status != "Direct_Payment" && req.Status != "Scheduled")
+                return ServiceResult<Invoice>.Fail("Chỉ có thể tạo phiếu thu cho đăng ký đã lên lịch hoặc thanh toán trực tiếp.");
+
+            var staff = await _context.Employees.FindAsync(staffId);
+            if (staff == null)
+                return ServiceResult<Invoice>.Fail("Nhân viên không tồn tại.");
+
+            // 🔹 Kiểm tra Appointment hợp lệ (nếu có)
+            var appointment = req.Appointment;
+            if (appointment != null)
+            {
+                // ❌ Nếu lịch hẹn đã được đánh dấu thanh toán (do VNPay hoặc quầy)
+                if (appointment.IsPaid)
+                    return ServiceResult<Invoice>.Fail("Lịch hẹn này đã được thanh toán. Không thể tạo thêm phiếu thu.");
+
+                // ❌ Nếu lịch hẹn có phương thức thanh toán là VNPAY
+                if (appointment.PaymentMethod?.Equals("VNPAY", StringComparison.OrdinalIgnoreCase) == true)
+                    return ServiceResult<Invoice>.Fail("Bệnh nhân đã thanh toán qua VNPay. Không thể tạo phiếu thu trực tiếp.");
+            }
+
+            // 🔹 Xác định số tiền
+            decimal total = appointment?.TotalFee ?? req.Fee ?? req.Exam?.Price ?? 0;
+            if (total <= 0)
+                return ServiceResult<Invoice>.Fail("Không thể tạo phiếu thu vì chưa có thông tin phí dịch vụ.");
+
+            // 🔹 Sinh mã phiếu thu
+            string code = $"INV-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}";
+
+            // 🔹 Tạo mới Invoice
+            var invoice = new Invoice
+            {
+                InvoiceCode = code,
+                RegistrationRequestId = req.RegistrationRequestId,
+                TotalAmount = total,
+                IssuedBy = staff.FullName,
+                IssuedDate = DateTime.UtcNow,
+                Note = appointment != null
+                    ? $"Thanh toán trực tiếp cho lịch hẹn #{appointment.AppointmentId}"
+                    : "Thanh toán trực tiếp tại quầy"
+            };
+
+            _context.Invoices.Add(invoice);
+
+            // 🔹 Nếu có lịch hẹn => cập nhật trạng thái thanh toán
+            if (appointment != null)
+            {
+                appointment.IsPaid = true;
+                appointment.PaymentAt = DateTime.UtcNow;
+                appointment.PaymentMethod = "Direct";
+                appointment.TransactionCode = code;
+                appointment.Status = AppointmentStatus.Confirmed;
+                _context.Appointments.Update(appointment);
+            }
+
+            // 🔹 Ghi chú nội bộ vào đăng ký
+            string prefix = $"[{DateTime.Now:dd/MM/yyyy HH:mm}] {staff.FullName}: ";
+            req.InternalNote = (req.InternalNote ?? "") + "\n" + prefix +
+                $"Đã lập phiếu thu {invoice.InvoiceCode} ({invoice.TotalAmount:N0} VNĐ).";
+            _context.RegistrationRequests.Update(req);
+
+            await _context.SaveChangesAsync();
+
+            // 🔹 Gửi email hóa đơn nếu có email bệnh nhân
+            if (appointment?.Patient?.Email != null)
+            {
+                string patientName = appointment.Patient.FullName;
+                string examName = req.Exam?.Name ?? "Không xác định";
+                string doctorName = appointment.Doctor?.FullName ?? "Chưa chỉ định";
+
+                string subject = $"Hóa đơn thanh toán dịch vụ khám {examName}";
+                string body = $@"
+        <div style='font-family:Arial;line-height:1.6'>
+            <h2 style='color:#2A4D9B;'>Xin chào {patientName},</h2>
+            <p>Bạn đã thanh toán thành công cho gói khám <strong>{examName}</strong>.</p>
+            <p><strong>Mã phiếu thu:</strong> {code}</p>
+            <p><strong>Số tiền:</strong> {total:N0} VNĐ</p>
+            <p><strong>Bác sĩ phụ trách:</strong> {doctorName}</p>
+            <p><strong>Thời gian khám:</strong> {appointment.StartTime:HH:mm dd/MM/yyyy}</p>
+            <hr style='border:none;border-top:1px solid #ccc;margin:20px 0'/>
+            <p>Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của <strong>ClinicCare</strong>.</p>
+        </div>";
+
+                await _emailService.SendEmailAsync(appointment.Patient.Email, subject, body);
+            }
+
+            return ServiceResult<Invoice>.Ok(invoice);
+        }
+
+
 
     }
 }

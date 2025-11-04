@@ -1,4 +1,6 @@
-﻿using ClinicManagement.Infrastructure.Persistence;
+﻿using ClinicManagement.Application.Interfaces.Email;
+using ClinicManagement.Domain.Entity;
+using ClinicManagement.Infrastructure.Persistence;
 using ClinicManagement.Infrastructure.Services.Payment.VNPAY;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -261,6 +263,35 @@ namespace ClinicManagement.API.Controllers.Payment
 
             return Content(html, "text/html");
         }
+
+
+
+
+        [HttpPost("create-invoice-for-direct-payment")]
+        public async Task<IActionResult> CreateInvoiceForDirectPayment([FromQuery] int requestId, [FromQuery] int staffId)
+        {
+            var result = await _paymentService.CreateInvoiceForDirectPaymentAsync(requestId, staffId);
+
+            if (!result.Success)
+                return BadRequest(new { success = false, message = result.Message });
+
+            var invoice = result.Data!;
+            return Ok(new
+            {
+                success = true,
+                message = $"Đã tạo phiếu thu {invoice.InvoiceCode} thành công.",
+                invoice = new
+                {
+                    invoice.InvoiceId,
+                    invoice.InvoiceCode,
+                    invoice.TotalAmount,
+                    invoice.IssuedBy,
+                    invoice.IssuedDate
+                }
+            });
+        }
+
+
 
     }
 }

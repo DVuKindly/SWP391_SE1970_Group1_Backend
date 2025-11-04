@@ -92,7 +92,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             if (req == null)
                 return ServiceResult<string>.Fail("Không tìm thấy đăng ký.");
 
-         
+            // ❌ Không cho cập nhật nếu đã thanh toán
             if (req.Status == "Paid" || req.Status == "Direct_Payment")
                 return ServiceResult<string>.Fail("Không thể cập nhật trạng thái vì đăng ký đã được thanh toán.");
 
@@ -100,15 +100,36 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             if (staff == null)
                 return ServiceResult<string>.Fail("Nhân viên không tồn tại.");
 
+            // ⚠️ Validate không cho revert trạng thái
+            if ((req.Status == "Scheduled" || req.Status == "Examined") &&
+                (newStatus == "Contacted" || newStatus == "Invalid"))
+            {
+                return ServiceResult<string>.Fail(
+                    $"Không thể chuyển từ trạng thái '{req.Status}' về '{newStatus}' vì đã lên lịch hoặc đã khám."
+                );
+            }
+
+            // ⚠️ Validate nếu trạng thái yêu cầu không hợp lệ trong danh sách
+            if (!_validStatuses.Contains(newStatus))
+                return ServiceResult<string>.Fail("Trạng thái mới không hợp lệ.");
+
+          
+            string oldStatus = req.Status;
             req.Status = newStatus;
             req.HandledById = staffId;
             req.IsProcessed = true;
             req.ProcessedAt = DateTime.UtcNow;
+            req.UpdatedAtUtc = DateTime.UtcNow;
+
+      
+            string prefix = $"[{DateTime.Now:dd/MM/yyyy HH:mm}] {staff.FullName}: ";
+            req.InternalNote = (req.InternalNote ?? "") + "\n" + prefix +
+                $"Cập nhật trạng thái từ '{oldStatus}' → '{newStatus}'.";
 
             _context.RegistrationRequests.Update(req);
             await _context.SaveChangesAsync();
 
-            return ServiceResult<string>.Ok($"Cập nhật trạng thái thành công: {newStatus}");
+            return ServiceResult<string>.Ok($"Cập nhật trạng thái thành công: {oldStatus} → {newStatus}");
         }
 
         // 🔹 Thêm ghi chú nội bộ
@@ -138,30 +159,44 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
         // 🔹 Đánh dấu đăng ký khám là không hợp lệ / ảo
         public async Task<ServiceResult<string>> MarkAsInvalidAsync(int requestId, int staffId, string reason)
         {
-            var req = await _context.RegistrationRequests.FindAsync(requestId);
+            var req = await _context.RegistrationRequests
+                .Include(r => r.Appointment)
+                .FirstOrDefaultAsync(r => r.RegistrationRequestId == requestId);
+
             if (req == null)
                 return ServiceResult<string>.Fail("Không tìm thấy đăng ký.");
 
-           
+            // ❌ Không cho đánh dấu không hợp lệ nếu đã thanh toán
             if (req.Status == "Paid" || req.Status == "Direct_Payment")
                 return ServiceResult<string>.Fail("Không thể đánh dấu không hợp lệ vì đăng ký đã được thanh toán.");
+
+            // ❌ Không cho đánh dấu không hợp lệ nếu đã lên lịch hoặc đã khám
+            if (req.Status == "Scheduled" || req.Status == "Examined")
+                return ServiceResult<string>.Fail("Không thể đánh dấu không hợp lệ vì đăng ký đã lên lịch hoặc đã được khám.");
 
             var staff = await _context.Employees.FindAsync(staffId);
             if (staff == null)
                 return ServiceResult<string>.Fail("Nhân viên không tồn tại.");
 
-            req.Status = "Invalid"; // hoặc "Unknown"
-            req.InternalNote = (req.InternalNote ?? "") +
-                               $"\n[{DateTime.Now:dd/MM/yyyy HH:mm}] {staff.FullName}: Đánh dấu không hợp lệ - {reason}";
-            req.HandledById = staffId;
+           
+            string oldStatus = req.Status;
+            req.Status = "Invalid";
             req.IsProcessed = true;
+            req.HandledById = staffId;
             req.ProcessedAt = DateTime.UtcNow;
+            req.UpdatedAtUtc = DateTime.UtcNow;
+
+       
+            string prefix = $"[{DateTime.Now:dd/MM/yyyy HH:mm}] {staff.FullName}: ";
+            req.InternalNote = (req.InternalNote ?? "") + "\n" + prefix +
+                $"Đánh dấu đăng ký là 'Invalid' (không hợp lệ). Lý do: {reason}. Trạng thái cũ: {oldStatus}.";
 
             _context.RegistrationRequests.Update(req);
             await _context.SaveChangesAsync();
 
-            return ServiceResult<string>.Ok($"Đã đánh dấu đăng ký #{requestId} là 'Invalid'.");
+            return ServiceResult<string>.Ok($"Đã đánh dấu đăng ký #{requestId} là 'Invalid' thành công.");
         }
+
 
         // 🔹 Xác nhận thanh toán trực tiếp (Direct_Payment)
 
@@ -273,6 +308,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
         }
 
         //đã khám
+        //  Đánh dấu đăng ký đã khám
         public async Task<ServiceResult<string>> MarkAsExaminedAsync(int requestId, int staffId)
         {
             var req = await _context.RegistrationRequests
@@ -283,22 +319,22 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             if (req == null)
                 return ServiceResult<string>.Fail("Không tìm thấy đăng ký khám.");
 
-            // Chỉ cho phép chuyển từ Paid hoặc Direct_Payment
-            if (req.Status != "Paid" && req.Status != "Direct_Payment")
-                return ServiceResult<string>.Fail("Chỉ có thể đánh dấu 'Đã khám' nếu đăng ký đã thanh toán.");
+            // ✅ Chỉ cho phép chuyển từ trạng thái Scheduled
+            if (req.Status != "Scheduled")
+                return ServiceResult<string>.Fail("Chỉ có thể đánh dấu 'Đã khám' nếu đăng ký đang ở trạng thái 'Đã lên lịch'.");
 
             var staff = await _context.Employees.FindAsync(staffId);
             if (staff == null)
                 return ServiceResult<string>.Fail("Nhân viên không tồn tại.");
 
-            // Cập nhật trạng thái
+            // ✅ Cập nhật trạng thái và thông tin xử lý
             req.Status = "Examined";
             req.IsProcessed = true;
             req.HandledById = staffId;
             req.ProcessedAt = DateTime.UtcNow;
             req.UpdatedAtUtc = DateTime.UtcNow;
 
-            // Ghi chú nội bộ
+            // ✅ Ghi chú nội bộ
             string prefix = $"[{DateTime.Now:dd/MM/yyyy HH:mm}] {staff.FullName}: ";
             req.InternalNote = (req.InternalNote ?? "") + "\n" + prefix +
                 $"Đánh dấu đăng ký đã khám thành công. Gói khám: {req.Exam?.Name ?? "N/A"}";
@@ -308,6 +344,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
 
             return ServiceResult<string>.Ok($"Đã cập nhật đăng ký #{requestId} thành 'Đã khám'.");
         }
+
 
 
     }
