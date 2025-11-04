@@ -307,43 +307,100 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             return ServiceResult<PagedResult<RegistrationRequestResponseDto>>.Ok(pagedResult);
         }
 
-        //đã khám
-        //  Đánh dấu đăng ký đã khám
+        // 🔹 Đánh dấu đăng ký đã khám
         public async Task<ServiceResult<string>> MarkAsExaminedAsync(int requestId, int staffId)
         {
             var req = await _context.RegistrationRequests
                 .Include(r => r.Appointment)
+                    .ThenInclude(a => a.Exam)
                 .Include(r => r.Exam)
                 .FirstOrDefaultAsync(r => r.RegistrationRequestId == requestId);
 
             if (req == null)
                 return ServiceResult<string>.Fail("Không tìm thấy đăng ký khám.");
 
-            // ✅ Chỉ cho phép chuyển từ trạng thái Scheduled
-            if (req.Status != "Scheduled")
-                return ServiceResult<string>.Fail("Chỉ có thể đánh dấu 'Đã khám' nếu đăng ký đang ở trạng thái 'Đã lên lịch'.");
+            var appointment = req.Appointment;
 
+            // ❌ Validate trạng thái không hợp lệ
+            if (req.Status == "Invalid" || req.Status == "Rejected")
+                return ServiceResult<string>.Fail("Không thể đánh dấu 'Đã khám' cho đăng ký không hợp lệ hoặc bị từ chối.");
+
+            if (req.Status == "Examined")
+                return ServiceResult<string>.Fail("Đăng ký này đã được đánh dấu là 'Đã khám' trước đó.");
+
+            // 🔹 Trường hợp đã thanh toán online (VNPay)
+            if (req.Status == "Paid")
+            {
+                // Đảm bảo có lịch hẹn và đã thanh toán
+                if (appointment != null && appointment.IsPaid)
+                    return await MarkExaminedCore(req, staffId, "Đã thanh toán qua VNPay.");
+                else
+                    return ServiceResult<string>.Fail("Thanh toán qua VNPay chưa được ghi nhận đầy đủ. Vui lòng kiểm tra lại.");
+            }
+
+            // 🔹 Trường hợp thanh toán trực tiếp tại quầy
+            if (req.Status == "Direct_Payment")
+            {
+                if (appointment == null)
+                    return ServiceResult<string>.Fail("Không tìm thấy lịch hẹn để xác nhận thanh toán.");
+
+                if (appointment.IsPaid)
+                    return await MarkExaminedCore(req, staffId, "Đã thanh toán trực tiếp tại quầy (có phiếu thu).");
+                else
+                    return ServiceResult<string>.Fail("Bệnh nhân thanh toán trực tiếp nhưng chưa có phiếu thu. Vui lòng tạo phiếu thu trước.");
+            }
+
+            // 🔹 Trường hợp đã xếp lịch (Scheduled)
+            if (req.Status == "Scheduled")
+            {
+                if (appointment == null)
+                    return ServiceResult<string>.Fail("Không tìm thấy lịch hẹn tương ứng.");
+
+                // Nếu lịch hẹn đã thanh toán (qua quầy hoặc VNPay)
+                if (appointment.IsPaid)
+                    return await MarkExaminedCore(req, staffId, "Đã lên lịch và xác nhận thanh toán thành công.");
+                else
+                    return ServiceResult<string>.Fail("Bệnh nhân chưa thanh toán. Không thể đánh dấu đã khám.");
+            }
+
+            // 🔹 Các trạng thái còn lại
+            return ServiceResult<string>.Fail($"Không thể đánh dấu đã khám khi đăng ký đang ở trạng thái '{req.Status}'.");
+        }
+
+
+        // ✅ Helper nội bộ để tránh lặp logic
+        private async Task<ServiceResult<string>> MarkExaminedCore(RegistrationRequest req, int staffId, string reason)
+        {
             var staff = await _context.Employees.FindAsync(staffId);
             if (staff == null)
                 return ServiceResult<string>.Fail("Nhân viên không tồn tại.");
 
-            // ✅ Cập nhật trạng thái và thông tin xử lý
             req.Status = "Examined";
             req.IsProcessed = true;
             req.HandledById = staffId;
             req.ProcessedAt = DateTime.UtcNow;
             req.UpdatedAtUtc = DateTime.UtcNow;
 
-            // ✅ Ghi chú nội bộ
+            // 🔹 Cập nhật lịch hẹn: Completed nếu có
+            if (req.Appointment != null)
+            {
+                req.Appointment.Status = AppointmentStatus.Completed;
+                req.Appointment.UpdatedAtUtc = DateTime.UtcNow;
+                _context.Appointments.Update(req.Appointment);
+            }
+
+            // 🔹 Ghi log
             string prefix = $"[{DateTime.Now:dd/MM/yyyy HH:mm}] {staff.FullName}: ";
             req.InternalNote = (req.InternalNote ?? "") + "\n" + prefix +
-                $"Đánh dấu đăng ký đã khám thành công. Gói khám: {req.Exam?.Name ?? "N/A"}";
+                $"Đánh dấu 'Đã khám'. {reason} Gói khám: {req.Exam?.Name ?? "N/A"}.";
 
             _context.RegistrationRequests.Update(req);
             await _context.SaveChangesAsync();
 
-            return ServiceResult<string>.Ok($"Đã cập nhật đăng ký #{requestId} thành 'Đã khám'.");
+            return ServiceResult<string>.Ok($"Đã cập nhật đăng ký #{req.RegistrationRequestId} thành 'Đã khám' thành công.");
         }
+
+
 
 
 

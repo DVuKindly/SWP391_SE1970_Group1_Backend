@@ -147,28 +147,29 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
             if (req == null)
                 return ServiceResult<Invoice>.Fail("Không tìm thấy đăng ký khám.");
 
-            // 🔹 Kiểm tra trạng thái hợp lệ
+            // 🔹 Chỉ cho phép tạo phiếu thu khi là thanh toán trực tiếp hoặc đã lên lịch
             if (req.Status != "Direct_Payment" && req.Status != "Scheduled")
-                return ServiceResult<Invoice>.Fail("Chỉ có thể tạo phiếu thu cho đăng ký đã lên lịch hoặc thanh toán trực tiếp.");
+                return ServiceResult<Invoice>.Fail("Chỉ có thể tạo phiếu thu cho đăng ký thanh toán trực tiếp hoặc đã lên lịch.");
 
             var staff = await _context.Employees.FindAsync(staffId);
             if (staff == null)
                 return ServiceResult<Invoice>.Fail("Nhân viên không tồn tại.");
 
-            // 🔹 Kiểm tra Appointment hợp lệ (nếu có)
             var appointment = req.Appointment;
+
+            // 🔹 Validate lịch hẹn (nếu có)
             if (appointment != null)
             {
-                // ❌ Nếu lịch hẹn đã được đánh dấu thanh toán (do VNPay hoặc quầy)
+                // ❌ Nếu đã thanh toán rồi (qua VNPay hoặc quầy)
                 if (appointment.IsPaid)
                     return ServiceResult<Invoice>.Fail("Lịch hẹn này đã được thanh toán. Không thể tạo thêm phiếu thu.");
 
-                // ❌ Nếu lịch hẹn có phương thức thanh toán là VNPAY
+                // ❌ Nếu có thông tin thanh toán VNPAY
                 if (appointment.PaymentMethod?.Equals("VNPAY", StringComparison.OrdinalIgnoreCase) == true)
                     return ServiceResult<Invoice>.Fail("Bệnh nhân đã thanh toán qua VNPay. Không thể tạo phiếu thu trực tiếp.");
             }
 
-            // 🔹 Xác định số tiền
+            // 🔹 Xác định số tiền cần thu
             decimal total = appointment?.TotalFee ?? req.Fee ?? req.Exam?.Price ?? 0;
             if (total <= 0)
                 return ServiceResult<Invoice>.Fail("Không thể tạo phiếu thu vì chưa có thông tin phí dịch vụ.");
@@ -176,7 +177,7 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
             // 🔹 Sinh mã phiếu thu
             string code = $"INV-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}";
 
-            // 🔹 Tạo mới Invoice
+            // 🔹 Tạo hóa đơn (Invoice)
             var invoice = new Invoice
             {
                 InvoiceCode = code,
@@ -191,7 +192,7 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
 
             _context.Invoices.Add(invoice);
 
-            // 🔹 Nếu có lịch hẹn => cập nhật trạng thái thanh toán
+            // 🔹 Cập nhật trạng thái thanh toán lịch hẹn
             if (appointment != null)
             {
                 appointment.IsPaid = true;
@@ -202,15 +203,15 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
                 _context.Appointments.Update(appointment);
             }
 
-            // 🔹 Ghi chú nội bộ vào đăng ký
+            // 🔹 Ghi log vào InternalNote của RegistrationRequest
             string prefix = $"[{DateTime.Now:dd/MM/yyyy HH:mm}] {staff.FullName}: ";
             req.InternalNote = (req.InternalNote ?? "") + "\n" + prefix +
                 $"Đã lập phiếu thu {invoice.InvoiceCode} ({invoice.TotalAmount:N0} VNĐ).";
-            _context.RegistrationRequests.Update(req);
 
+            _context.RegistrationRequests.Update(req);
             await _context.SaveChangesAsync();
 
-            // 🔹 Gửi email hóa đơn nếu có email bệnh nhân
+            // 🔹 Gửi email cho bệnh nhân (nếu có)
             if (appointment?.Patient?.Email != null)
             {
                 string patientName = appointment.Patient.FullName;
@@ -235,7 +236,6 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
 
             return ServiceResult<Invoice>.Ok(invoice);
         }
-
 
 
     }
