@@ -15,13 +15,16 @@ namespace ClinicManagement.Application.DTOS.Request.Booking
         public string Phone { get; set; } = default!;
         public string Content { get; set; } = default!;
         public DateTime StartDate { get; set; }
-
         public string Status { get; set; } = default!;
+        public string PaymentStatus { get; set; } = default!; // 🧾 Thêm
         public bool IsProcessed { get; set; }
         public string? InternalNote { get; set; }
         public string? HandledBy { get; set; }
         public DateTime? ProcessedAt { get; set; }
-
         public string? AppointmentInfo { get; set; }
+        public int? AppointmentId { get; set; }
+        public string? DoctorName { get; set; }
+        public string? PatientName { get; set; }
     }
+
 }

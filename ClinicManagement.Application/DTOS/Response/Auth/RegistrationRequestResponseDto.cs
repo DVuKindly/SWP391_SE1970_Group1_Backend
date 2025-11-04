@@ -14,6 +14,7 @@ namespace ClinicManagement.Application.DTOS.Response.Auth
         public string Phone { get; set; } = default!;
         public string Content { get; set; } = default!;
         public DateTime StartDate { get; set; }
+        public string PaymentStatus { get; set; } = default!; 
 
         public string Status { get; set; } = default!;
         public bool IsProcessed { get; set; }

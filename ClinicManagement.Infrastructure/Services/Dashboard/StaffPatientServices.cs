@@ -39,6 +39,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                     Content = r.Content,
                     StartDate = r.StartDate,
                     Status = r.Status,
+                    PaymentStatus = r.PaymentStatus.ToString(), // 🧾 Thêm trạng thái thanh toán
                     IsProcessed = r.IsProcessed,
                     CreatedAtUtc = r.CreatedAtUtc,
                     HandledBy = r.HandledBy != null ? r.HandledBy.FullName : null,
@@ -52,13 +53,15 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
 
 
 
-
         // 🔹 Lấy chi tiết 1 đăng ký khám
         public async Task<ServiceResult<RegistrationRequestDetailDto>> GetRequestDetailAsync(int requestId)
         {
             var req = await _context.RegistrationRequests
                 .Include(r => r.HandledBy)
                 .Include(r => r.Appointment)
+                    .ThenInclude(a => a.Doctor)
+                .Include(r => r.Appointment)
+                    .ThenInclude(a => a.Patient)
                 .FirstOrDefaultAsync(r => r.RegistrationRequestId == requestId);
 
             if (req == null)
@@ -73,17 +76,20 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                 Content = req.Content,
                 StartDate = req.StartDate,
                 Status = req.Status,
+                PaymentStatus = req.PaymentStatus.ToString(), // 🧾 Thêm
                 IsProcessed = req.IsProcessed,
                 InternalNote = req.InternalNote,
                 HandledBy = req.HandledBy?.FullName,
                 ProcessedAt = req.ProcessedAt,
                 AppointmentInfo = req.Appointment != null
                     ? $"Lịch {req.Appointment.StartTime:HH:mm dd/MM/yyyy} với BS {req.Appointment.Doctor?.FullName}"
-                    : null
+                    : null,
+               
             };
 
             return ServiceResult<RegistrationRequestDetailDto>.Ok(dto);
         }
+
 
         // 🔹 Cập nhật trạng thái đăng ký
         public async Task<ServiceResult<string>> UpdateStatusAsync(int requestId, string newStatus, int staffId)

@@ -108,15 +108,17 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
                     transaction.Status = "Success";
 
                     var reg = await _context.RegistrationRequests
-                        .OrderByDescending(r => r.CreatedAtUtc)
+                        .Include(r => r.Exam)
                         .FirstOrDefaultAsync(r =>
                             r.AppointmentId == transaction.AppointmentId ||
-                            (r.Status == "Contacted" && (r.Fee == transaction.Amount || r.Exam!.Price == transaction.Amount))
+                            (r.Status == "Contacted" &&
+                             (r.Fee == transaction.Amount || r.Exam!.Price == transaction.Amount))
                         );
 
                     if (reg != null)
                     {
-                        reg.Status = "Paid";
+                        reg.PaymentStatus = PaymentStatus.VnPayPaid; 
+                        reg.Status = "Scheduled"; 
                         reg.ProcessedAt = DateTime.Now;
                         reg.IsProcessed = true;
                         reg.Fee = reg.Exam?.Price ?? transaction.Amount;
@@ -134,7 +136,8 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
         }
 
 
-        public async Task<ServiceResult<Invoice>> CreateInvoiceForDirectPaymentAsync(int requestId, int staffId)
+
+        public async Task<ServiceResult<Invoice>> CreateInvoiceForDirectPaymentAsync(int requestId)
         {
             var req = await _context.RegistrationRequests
                 .Include(r => r.Exam)
@@ -147,24 +150,22 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
             if (req == null)
                 return ServiceResult<Invoice>.Fail("Không tìm thấy đăng ký khám.");
 
-            // 🔹 Chỉ cho phép tạo phiếu thu khi là thanh toán trực tiếp hoặc đã lên lịch
-            if (req.Status != "Direct_Payment" && req.Status != "Scheduled")
-                return ServiceResult<Invoice>.Fail("Chỉ có thể tạo phiếu thu cho đăng ký thanh toán trực tiếp hoặc đã lên lịch.");
-
-            var staff = await _context.Employees.FindAsync(staffId);
-            if (staff == null)
-                return ServiceResult<Invoice>.Fail("Nhân viên không tồn tại.");
-
             var appointment = req.Appointment;
+
+            // 🔹 Kiểm tra trạng thái tổng quát
+            if (req.Status == "Invalid" || req.Status == "Rejected")
+                return ServiceResult<Invoice>.Fail("Không thể tạo phiếu thu cho đăng ký không hợp lệ hoặc bị từ chối.");
+
+            // 🔹 Kiểm tra PaymentStatus (tránh tạo lại)
+            if (req.PaymentStatus == PaymentStatus.VnPayPaid || req.PaymentStatus == PaymentStatus.DirectPaid)
+                return ServiceResult<Invoice>.Fail("Đăng ký này đã được thanh toán, không thể tạo phiếu thu mới.");
 
             // 🔹 Validate lịch hẹn (nếu có)
             if (appointment != null)
             {
-                // ❌ Nếu đã thanh toán rồi (qua VNPay hoặc quầy)
                 if (appointment.IsPaid)
                     return ServiceResult<Invoice>.Fail("Lịch hẹn này đã được thanh toán. Không thể tạo thêm phiếu thu.");
 
-                // ❌ Nếu có thông tin thanh toán VNPAY
                 if (appointment.PaymentMethod?.Equals("VNPAY", StringComparison.OrdinalIgnoreCase) == true)
                     return ServiceResult<Invoice>.Fail("Bệnh nhân đã thanh toán qua VNPay. Không thể tạo phiếu thu trực tiếp.");
             }
@@ -177,13 +178,13 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
             // 🔹 Sinh mã phiếu thu
             string code = $"INV-{DateTime.Now:yyyyMMdd}-{Guid.NewGuid().ToString("N")[..6].ToUpper()}";
 
-            // 🔹 Tạo hóa đơn (Invoice)
+            // 🔹 Tạo hóa đơn
             var invoice = new Invoice
             {
                 InvoiceCode = code,
                 RegistrationRequestId = req.RegistrationRequestId,
                 TotalAmount = total,
-                IssuedBy = staff.FullName,
+                IssuedBy = "Hệ thống tự động",
                 IssuedDate = DateTime.UtcNow,
                 Note = appointment != null
                     ? $"Thanh toán trực tiếp cho lịch hẹn #{appointment.AppointmentId}"
@@ -192,7 +193,7 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
 
             _context.Invoices.Add(invoice);
 
-            // 🔹 Cập nhật trạng thái thanh toán lịch hẹn
+            // 🔹 Cập nhật trạng thái thanh toán cho lịch hẹn (nếu có)
             if (appointment != null)
             {
                 appointment.IsPaid = true;
@@ -203,8 +204,14 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
                 _context.Appointments.Update(appointment);
             }
 
-            // 🔹 Ghi log vào InternalNote của RegistrationRequest
-            string prefix = $"[{DateTime.Now:dd/MM/yyyy HH:mm}] {staff.FullName}: ";
+            // 🔹 Cập nhật PaymentStatus cho RegistrationRequest
+            req.PaymentStatus = PaymentStatus.DirectPaid;
+            req.ProcessedAt = DateTime.UtcNow;
+            req.IsProcessed = true;
+            req.UpdatedAtUtc = DateTime.UtcNow;
+
+            // 🔹 Ghi chú nội bộ
+            string prefix = $"[{DateTime.Now:dd/MM/yyyy HH:mm}] Hệ thống: ";
             req.InternalNote = (req.InternalNote ?? "") + "\n" + prefix +
                 $"Đã lập phiếu thu {invoice.InvoiceCode} ({invoice.TotalAmount:N0} VNĐ).";
 
@@ -220,16 +227,16 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
 
                 string subject = $"Hóa đơn thanh toán dịch vụ khám {examName}";
                 string body = $@"
-        <div style='font-family:Arial;line-height:1.6'>
-            <h2 style='color:#2A4D9B;'>Xin chào {patientName},</h2>
-            <p>Bạn đã thanh toán thành công cho gói khám <strong>{examName}</strong>.</p>
-            <p><strong>Mã phiếu thu:</strong> {code}</p>
-            <p><strong>Số tiền:</strong> {total:N0} VNĐ</p>
-            <p><strong>Bác sĩ phụ trách:</strong> {doctorName}</p>
-            <p><strong>Thời gian khám:</strong> {appointment.StartTime:HH:mm dd/MM/yyyy}</p>
-            <hr style='border:none;border-top:1px solid #ccc;margin:20px 0'/>
-            <p>Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của <strong>ClinicCare</strong>.</p>
-        </div>";
+<div style='font-family:Arial;line-height:1.6'>
+    <h2 style='color:#2A4D9B;'>Xin chào {patientName},</h2>
+    <p>Bạn đã thanh toán thành công cho gói khám <strong>{examName}</strong>.</p>
+    <p><strong>Mã phiếu thu:</strong> {code}</p>
+    <p><strong>Số tiền:</strong> {total:N0} VNĐ</p>
+    <p><strong>Bác sĩ phụ trách:</strong> {doctorName}</p>
+    <p><strong>Thời gian khám:</strong> {appointment.StartTime:HH:mm dd/MM/yyyy}</p>
+    <hr style='border:none;border-top:1px solid #ccc;margin:20px 0'/>
+    <p>Cảm ơn bạn đã tin tưởng và sử dụng dịch vụ của <strong>ClinicCare</strong>.</p>
+</div>";
 
                 await _emailService.SendEmailAsync(appointment.Patient.Email, subject, body);
             }

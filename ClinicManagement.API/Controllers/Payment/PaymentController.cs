@@ -266,11 +266,10 @@ namespace ClinicManagement.API.Controllers.Payment
 
 
 
-
         [HttpPost("create-invoice-for-direct-payment")]
-        public async Task<IActionResult> CreateInvoiceForDirectPayment([FromQuery] int requestId, [FromQuery] int staffId)
+        public async Task<IActionResult> CreateInvoiceForDirectPayment([FromQuery] int requestId)
         {
-            var result = await _paymentService.CreateInvoiceForDirectPaymentAsync(requestId, staffId);
+            var result = await _paymentService.CreateInvoiceForDirectPaymentAsync(requestId);
 
             if (!result.Success)
                 return BadRequest(new { success = false, message = result.Message });
@@ -283,13 +282,14 @@ namespace ClinicManagement.API.Controllers.Payment
                 invoice = new
                 {
                     invoice.InvoiceId,
-                    invoice.InvoiceCode,
+                    invoice.InvoiceCode,    
                     invoice.TotalAmount,
                     invoice.IssuedBy,
                     invoice.IssuedDate
                 }
             });
         }
+
 
 
 
