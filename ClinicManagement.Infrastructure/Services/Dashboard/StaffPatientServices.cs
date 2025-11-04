@@ -294,6 +294,7 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
                     Content = r.Content,
                     StartDate = r.StartDate,
                     Status = r.Status,
+                    PaymentStatus = r.PaymentStatus.ToString(), // 🧾 Thêm trạng thái thanh toán
                     IsProcessed = r.IsProcessed,
                     CreatedAtUtc = r.CreatedAtUtc,
                     HandledBy = r.HandledBy != null ? r.HandledBy.FullName : null,

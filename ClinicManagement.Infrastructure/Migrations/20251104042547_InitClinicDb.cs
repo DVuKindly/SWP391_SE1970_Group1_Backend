@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace ClinicManagement.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class InitClinicD2bSeed23412 : Migration
+    public partial class InitClinicDb : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -602,25 +602,25 @@ namespace ClinicManagement.Infrastructure.Migrations
                 columns: new[] { "DepartmentId", "Code", "CreatedAtUtc", "Description", "IsActive", "Name", "UpdatedAtUtc" },
                 values: new object[,]
                 {
-                    { 1, "CARD", new DateTime(2025, 10, 29, 15, 10, 53, 660, DateTimeKind.Utc).AddTicks(7610), "Khoa Tim mạch", true, "Cardiology", null },
-                    { 2, "NEUR", new DateTime(2025, 10, 29, 15, 10, 53, 660, DateTimeKind.Utc).AddTicks(7613), "Khoa Thần kinh", true, "Neurology", null },
-                    { 3, "DERM", new DateTime(2025, 10, 29, 15, 10, 53, 660, DateTimeKind.Utc).AddTicks(7614), "Khoa Da liễu", true, "Dermatology", null }
+                    { 1, "CARD", new DateTime(2025, 11, 4, 4, 25, 47, 497, DateTimeKind.Utc).AddTicks(3756), "Khoa Tim mạch", true, "Cardiology", null },
+                    { 2, "NEUR", new DateTime(2025, 11, 4, 4, 25, 47, 497, DateTimeKind.Utc).AddTicks(3759), "Khoa Thần kinh", true, "Neurology", null },
+                    { 3, "DERM", new DateTime(2025, 11, 4, 4, 25, 47, 497, DateTimeKind.Utc).AddTicks(3796), "Khoa Da liễu", true, "Dermatology", null }
                 });
 
             migrationBuilder.InsertData(
                 table: "Employees",
                 columns: new[] { "EmployeeUserId", "CreatedAtUtc", "Email", "FullName", "Image", "IsActive", "LastLoginAtUtc", "PasswordHash", "Phone", "RefreshToken", "RefreshTokenExpiry", "UpdatedAtUtc" },
-                values: new object[] { 1, new DateTime(2025, 10, 29, 15, 10, 53, 660, DateTimeKind.Utc).AddTicks(6003), "admin@gmail.com", "Super Admin", null, true, null, "$2a$11$7Pb2XS4fRQWCvUfRhkTNJO2Qib1pTOFjWOX1SQSyIhjNN1CzfXVKC", "0123456789", null, null, null });
+                values: new object[] { 1, new DateTime(2025, 11, 4, 4, 25, 47, 497, DateTimeKind.Utc).AddTicks(1054), "admin@gmail.com", "Super Admin", null, true, null, "$2a$11$7Pb2XS4fRQWCvUfRhkTNJO2Qib1pTOFjWOX1SQSyIhjNN1CzfXVKC", "0123456789", null, null, null });
 
             migrationBuilder.InsertData(
                 table: "Roles",
                 columns: new[] { "RoleId", "CreatedAtUtc", "Description", "Name", "UpdatedAtUtc" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3863), null, "Admin", null },
-                    { 2, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3865), null, "Staff_Patient", null },
-                    { 3, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3866), null, "Staff_Doctor", null },
-                    { 4, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3867), null, "Doctor", null }
+                    { 1, new DateTime(2025, 11, 4, 4, 25, 47, 499, DateTimeKind.Utc).AddTicks(8951), null, "Admin", null },
+                    { 2, new DateTime(2025, 11, 4, 4, 25, 47, 499, DateTimeKind.Utc).AddTicks(8954), null, "Staff_Patient", null },
+                    { 3, new DateTime(2025, 11, 4, 4, 25, 47, 499, DateTimeKind.Utc).AddTicks(8956), null, "Staff_Doctor", null },
+                    { 4, new DateTime(2025, 11, 4, 4, 25, 47, 499, DateTimeKind.Utc).AddTicks(8957), null, "Doctor", null }
                 });
 
             migrationBuilder.InsertData(
@@ -628,27 +628,27 @@ namespace ClinicManagement.Infrastructure.Migrations
                 columns: new[] { "Id", "CreatedAtUtc", "DayOfWeek", "EndTime", "IsActive", "SlotMinutes", "StartTime", "UpdatedAtUtc" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3899), 1, new TimeSpan(0, 12, 0, 0, 0), true, 60, new TimeSpan(0, 8, 0, 0, 0), null },
-                    { 2, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3904), 1, new TimeSpan(0, 17, 0, 0, 0), true, 60, new TimeSpan(0, 13, 0, 0, 0), null },
-                    { 3, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3905), 2, new TimeSpan(0, 12, 0, 0, 0), true, 60, new TimeSpan(0, 8, 0, 0, 0), null },
-                    { 4, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3907), 2, new TimeSpan(0, 17, 0, 0, 0), true, 60, new TimeSpan(0, 13, 0, 0, 0), null },
-                    { 11, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3908), 6, new TimeSpan(0, 12, 0, 0, 0), true, 60, new TimeSpan(0, 8, 0, 0, 0), null },
-                    { 12, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3909), 6, new TimeSpan(0, 17, 0, 0, 0), true, 60, new TimeSpan(0, 13, 0, 0, 0), null }
+                    { 1, new DateTime(2025, 11, 4, 4, 25, 47, 499, DateTimeKind.Utc).AddTicks(8992), 1, new TimeSpan(0, 12, 0, 0, 0), true, 60, new TimeSpan(0, 8, 0, 0, 0), null },
+                    { 2, new DateTime(2025, 11, 4, 4, 25, 47, 499, DateTimeKind.Utc).AddTicks(8999), 1, new TimeSpan(0, 17, 0, 0, 0), true, 60, new TimeSpan(0, 13, 0, 0, 0), null },
+                    { 3, new DateTime(2025, 11, 4, 4, 25, 47, 499, DateTimeKind.Utc).AddTicks(9000), 2, new TimeSpan(0, 12, 0, 0, 0), true, 60, new TimeSpan(0, 8, 0, 0, 0), null },
+                    { 4, new DateTime(2025, 11, 4, 4, 25, 47, 499, DateTimeKind.Utc).AddTicks(9001), 2, new TimeSpan(0, 17, 0, 0, 0), true, 60, new TimeSpan(0, 13, 0, 0, 0), null },
+                    { 11, new DateTime(2025, 11, 4, 4, 25, 47, 499, DateTimeKind.Utc).AddTicks(9003), 6, new TimeSpan(0, 12, 0, 0, 0), true, 60, new TimeSpan(0, 8, 0, 0, 0), null },
+                    { 12, new DateTime(2025, 11, 4, 4, 25, 47, 499, DateTimeKind.Utc).AddTicks(9004), 6, new TimeSpan(0, 17, 0, 0, 0), true, 60, new TimeSpan(0, 13, 0, 0, 0), null }
                 });
 
             migrationBuilder.InsertData(
                 table: "EmployeeRoles",
                 columns: new[] { "EmployeeId", "RoleId", "AssignedAtUtc", "AssignedById", "CreatedAtUtc", "UpdatedAtUtc" },
-                values: new object[] { 1, 1, new DateTime(2025, 10, 29, 15, 10, 53, 660, DateTimeKind.Utc).AddTicks(6132), null, new DateTime(2025, 10, 29, 15, 10, 53, 660, DateTimeKind.Utc).AddTicks(6130), null });
+                values: new object[] { 1, 1, new DateTime(2025, 11, 4, 4, 25, 47, 497, DateTimeKind.Utc).AddTicks(1213), null, new DateTime(2025, 11, 4, 4, 25, 47, 497, DateTimeKind.Utc).AddTicks(1209), null });
 
             migrationBuilder.InsertData(
                 table: "Exams",
                 columns: new[] { "ExamId", "CreatedAtUtc", "DepartmentId", "Description", "IsActive", "Name", "Price", "UpdatedAtUtc" },
                 values: new object[,]
                 {
-                    { 1, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3935), 3, "Tư vấn và khám da liễu tổng quát, không bao gồm xét nghiệm", true, "Khám Da liễu cơ bản", 200000m, null },
-                    { 2, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3937), 1, "Kiểm tra nhịp tim, đo ECG, siêu âm tim", true, "Khám Tim mạch chuyên sâu", 500000m, null },
-                    { 3, new DateTime(2025, 10, 29, 15, 10, 53, 662, DateTimeKind.Utc).AddTicks(3939), 2, "Khám lâm sàng, đánh giá triệu chứng thần kinh, tư vấn điều trị", true, "Khám Thần kinh tổng quát", 400000m, null }
+                    { 1, new DateTime(2025, 11, 4, 4, 25, 47, 499, DateTimeKind.Utc).AddTicks(9042), 3, "Tư vấn và khám da liễu tổng quát, không bao gồm xét nghiệm", true, "Khám Da liễu cơ bản", 200000m, null },
+                    { 2, new DateTime(2025, 11, 4, 4, 25, 47, 499, DateTimeKind.Utc).AddTicks(9044), 1, "Kiểm tra nhịp tim, đo ECG, siêu âm tim", true, "Khám Tim mạch chuyên sâu", 500000m, null },
+                    { 3, new DateTime(2025, 11, 4, 4, 25, 47, 499, DateTimeKind.Utc).AddTicks(9046), 2, "Khám lâm sàng, đánh giá triệu chứng thần kinh, tư vấn điều trị", true, "Khám Thần kinh tổng quát", 400000m, null }
                 });
 
             migrationBuilder.CreateIndex(
