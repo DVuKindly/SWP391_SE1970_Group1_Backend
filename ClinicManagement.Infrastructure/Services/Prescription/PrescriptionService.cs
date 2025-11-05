@@ -5,13 +5,16 @@ using ClinicManagement.Application.Interfaces.Email;
 using ClinicManagement.Application.Interfaces.Prescription;
 using ClinicManagement.Domain.Entity;
 using ClinicManagement.Infrastructure.Persistence;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 namespace ClinicManagement.Infrastructure.Services.Prescription
 {
     public class PrescriptionService : IPrescriptionService
     {
         private readonly ClinicDbContext _context;
+        private readonly IHttpContextAccessor _http;
         private readonly IEmailService _email;
         private static DateTime NowVN => DateTime.UtcNow.AddHours(7);
 
@@ -20,6 +23,7 @@ namespace ClinicManagement.Infrastructure.Services.Prescription
             _context = context;
             _email = email;
         }
+
 
         // 🔹 1. Danh sách bệnh nhân đã khám (Examined)
         public async Task<ServiceResult<List<ExaminedPatientDto>>> GetExaminedPatientsAsync(string? keyword = null)
@@ -54,7 +58,7 @@ namespace ClinicManagement.Infrastructure.Services.Prescription
         }
 
         // 🔹 2. Kê đơn thuốc mới
-        public async Task<ServiceResult<PrescriptionResponseDto>> CreatePrescriptionAsync(PrescriptionRequestDto req, int staffId)
+        public async Task<ServiceResult<PrescriptionResponseDto>> CreatePrescriptionAsync(PrescriptionRequestDto req)
         {
             var appointment = await _context.Appointments
                 .Include(a => a.Patient)
@@ -69,15 +73,17 @@ namespace ClinicManagement.Infrastructure.Services.Prescription
             if (reg == null || reg.Status != "Examined")
                 return ServiceResult<PrescriptionResponseDto>.Fail("Chỉ bệnh nhân đã khám mới được kê đơn.");
 
+            // ✅ Không lấy staffId từ JWT nữa, luôn để null
             var prescription = new Domain.Entity.Prescription
             {
                 AppointmentId = appointment.AppointmentId,
-                StaffId = staffId,
+                StaffId = null, // cho phép null
                 Diagnosis = req.Diagnosis,
                 Note = req.Note,
                 CreatedAtUtc = NowVN
             };
 
+            // Thêm danh sách thuốc
             foreach (var med in req.Medicines)
             {
                 prescription.Details.Add(new PrescriptionDetail
@@ -93,6 +99,7 @@ namespace ClinicManagement.Infrastructure.Services.Prescription
             _context.Prescriptions.Add(prescription);
             await _context.SaveChangesAsync();
 
+            // Gửi email cho bệnh nhân
             await SendPrescriptionEmailInternalAsync(appointment.Patient.Email, appointment.Patient.FullName, req);
 
             return ServiceResult<PrescriptionResponseDto>.Ok(new PrescriptionResponseDto
@@ -105,6 +112,7 @@ namespace ClinicManagement.Infrastructure.Services.Prescription
                 Medicines = req.Medicines
             }, "Đã kê đơn thuốc thành công.");
         }
+
 
         // 🔹 3. Danh sách tất cả đơn thuốc
         public async Task<ServiceResult<List<PrescriptionResponseDto>>> GetAllPrescriptionsAsync(int? doctorId = null, int? patientId = null)
@@ -175,7 +183,7 @@ namespace ClinicManagement.Infrastructure.Services.Prescription
         }
 
         // 🔹 5. Cập nhật đơn thuốc
-        public async Task<ServiceResult<PrescriptionResponseDto>> UpdatePrescriptionAsync(int id, PrescriptionRequestDto req, int staffId)
+        public async Task<ServiceResult<PrescriptionResponseDto>> UpdatePrescriptionAsync(int id, PrescriptionRequestDto req)
         {
             var p = await _context.Prescriptions
                 .Include(x => x.Details)
@@ -188,6 +196,9 @@ namespace ClinicManagement.Infrastructure.Services.Prescription
             p.Diagnosis = req.Diagnosis;
             p.Note = req.Note;
             p.UpdatedAtUtc = NowVN;
+
+            // Nếu muốn ghi nhận người sửa (tuỳ nghiệp vụ):
+            // p.StaffId = GetCurrentStaffId(); // (không bắt buộc)
 
             _context.PrescriptionDetails.RemoveRange(p.Details);
             p.Details.Clear();

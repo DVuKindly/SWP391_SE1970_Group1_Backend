@@ -14,8 +14,8 @@ namespace ClinicManagement.Application.Interfaces.Prescription
         Task<ServiceResult<List<PrescriptionResponseDto>>> GetAllPrescriptionsAsync(int? doctorId = null, int? patientId = null);
         Task<ServiceResult<PrescriptionResponseDto>> GetPrescriptionDetailAsync(int prescriptionId);
 
-        Task<ServiceResult<PrescriptionResponseDto>> CreatePrescriptionAsync(PrescriptionRequestDto request, int staffId);
-        Task<ServiceResult<PrescriptionResponseDto>> UpdatePrescriptionAsync(int id, PrescriptionRequestDto request, int staffId);
+        Task<ServiceResult<PrescriptionResponseDto>> CreatePrescriptionAsync(PrescriptionRequestDto request);
+        Task<ServiceResult<PrescriptionResponseDto>> UpdatePrescriptionAsync(int id, PrescriptionRequestDto request);
         Task<ServiceResult<bool>> DeletePrescriptionAsync(int id);
         Task<ServiceResult<string>> SendPrescriptionEmailAsync(int id);
         Task<ServiceResult<PatientPaymentSummaryDto>> GetPaymentSummaryAsync(DateTime? from = null, DateTime? to = null);

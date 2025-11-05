@@ -52,7 +52,7 @@ namespace ClinicManagement.API.Controllers.Prescription
             if (!ModelState.IsValid)
                 return BadRequest(ServiceResult<string>.Fail("Dữ liệu không hợp lệ."));
 
-            var result = await _service.CreatePrescriptionAsync(request, staffId);
+            var result = await _service.CreatePrescriptionAsync(request);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
@@ -63,7 +63,7 @@ namespace ClinicManagement.API.Controllers.Prescription
             [FromBody] PrescriptionRequestDto request,
             [FromQuery] int staffId)
         {
-            var result = await _service.UpdatePrescriptionAsync(id, request, staffId);
+            var result = await _service.UpdatePrescriptionAsync(id, request);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 

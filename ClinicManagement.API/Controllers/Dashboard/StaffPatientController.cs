@@ -95,7 +95,7 @@ namespace ClinicManagement.API.Controllers.Dashboard {
         [HttpPost("{requestId}/mark-examined")]
         public async Task<IActionResult> MarkAsExamined(int requestId, [FromQuery] int staffId)
         {
-            var result = await _service.MarkAsExaminedAsync(requestId, staffId);
+            var result = await _service.MarkAsExaminedAsync(requestId);
             return result.Success ? Ok(result) : BadRequest(result);
         }
 
