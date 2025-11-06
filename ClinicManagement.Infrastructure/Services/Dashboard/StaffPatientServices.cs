@@ -339,12 +339,6 @@ namespace ClinicManagement.Infrastructure.Services.Dashboard
             if (req.Status != "Scheduled")
                 return ServiceResult<string>.Fail("Chỉ có thể đánh dấu 'Đã khám' cho đăng ký đã được xếp lịch.");
 
-<<<<<<< HEAD
-            if (req.Appointment == null)
-                return ServiceResult<string>.Fail("Không tìm thấy lịch hẹn tương ứng để hoàn tất khám.");
-=======
-    
->>>>>>> edc0bd1dc47ff96986fe08bc40d44b78f6a5ebea
 
             // ✅ Kiểm tra trạng thái thanh toán mới (enum)
             if (req.PaymentStatus == PaymentStatus.VnPayPaid)

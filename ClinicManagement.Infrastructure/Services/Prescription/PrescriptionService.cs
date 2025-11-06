@@ -267,5 +267,39 @@ namespace ClinicManagement.Infrastructure.Services.Prescription
         {
             throw new NotImplementedException();
         }
+        // ✅ 7. Danh sách bệnh nhân đã khám của bác sĩ
+        public async Task<ServiceResult<List<ExaminedPatientDto>>> GetExaminedPatientsForDoctorAsync(int doctorId, string? keyword = null)
+        {
+            var query = _context.RegistrationRequests
+                .Include(r => r.Exam)
+                .Include(r => r.Appointment)
+                .Where(r => r.Status == "Examined"
+                            && r.Appointment != null
+                            && r.Appointment.DoctorId == doctorId);
+
+            if (!string.IsNullOrWhiteSpace(keyword))
+            {
+                var kw = keyword.Trim().ToLower();
+                query = query.Where(r =>
+                    r.FullName.ToLower().Contains(kw) ||
+                    r.Email.ToLower().Contains(kw) ||
+                    r.Phone.ToLower().Contains(kw));
+            }
+
+            var list = await query
+                .OrderByDescending(r => r.ProcessedAt)
+                .Select(r => new ExaminedPatientDto
+                {
+                    AppointmentId = r.AppointmentId ?? 0,
+                    FullName = r.FullName,
+                    Email = r.Email,
+                    ExamName = r.Exam != null ? r.Exam.Name : "(Không rõ)",
+                    ExaminedAt = r.ProcessedAt ?? NowVN
+                })
+                .ToListAsync();
+
+            return ServiceResult<List<ExaminedPatientDto>>.Ok(list);
+        }
+
     }
 }

@@ -30,5 +30,9 @@ namespace ClinicManagement.Application.Interfaces.Prescription
 
         // 🔹 7. (Tuỳ chọn) Tổng hợp thống kê thanh toán nếu sau này cần
         Task<ServiceResult<PatientPaymentSummaryDto>> GetPaymentSummaryAsync(DateTime? from = null, DateTime? to = null);
+
+
+        Task<ServiceResult<List<ExaminedPatientDto>>> GetExaminedPatientsForDoctorAsync(int doctorId, string? keyword = null);
+
     }
 }
