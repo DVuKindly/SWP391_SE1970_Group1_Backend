@@ -67,7 +67,7 @@
                 modelBuilder.Entity<Role>()
                     .HasKey(r => r.RoleId);
             modelBuilder.Entity<Prescription>()
-    .HasKey(p => p.PrescriptionId);
+      .HasKey(p => p.PrescriptionId);
 
             modelBuilder.Entity<Prescription>()
                 .HasOne(p => p.Appointment)
@@ -75,11 +75,13 @@
                 .HasForeignKey(p => p.AppointmentId)
                 .OnDelete(DeleteBehavior.Cascade);
 
+            // 🔻 Cho phép null + nếu xóa nhân viên, set null
             modelBuilder.Entity<Prescription>()
                 .HasOne(p => p.Staff)
                 .WithMany()
                 .HasForeignKey(p => p.StaffId)
-                .OnDelete(DeleteBehavior.Restrict);
+                .OnDelete(DeleteBehavior.SetNull);
+
 
             modelBuilder.Entity<PrescriptionDetail>()
                 .HasKey(pd => pd.PrescriptionDetailId);

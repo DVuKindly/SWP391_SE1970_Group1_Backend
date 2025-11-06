@@ -4,6 +4,7 @@ using ClinicManagement.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ClinicManagement.Infrastructure.Migrations
 {
     [DbContext(typeof(ClinicDbContext))]
-    partial class ClinicDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251104072010_InitClinicDb4")]
+    partial class InitClinicDb4
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -143,7 +146,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                         {
                             DepartmentId = 1,
                             Code = "CARD",
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 24, DateTimeKind.Utc).AddTicks(4650),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 472, DateTimeKind.Utc).AddTicks(3800),
                             Description = "Khoa Tim mạch",
                             IsActive = true,
                             Name = "Cardiology"
@@ -152,7 +155,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                         {
                             DepartmentId = 2,
                             Code = "NEUR",
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 24, DateTimeKind.Utc).AddTicks(4652),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 472, DateTimeKind.Utc).AddTicks(3802),
                             Description = "Khoa Thần kinh",
                             IsActive = true,
                             Name = "Neurology"
@@ -161,7 +164,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                         {
                             DepartmentId = 3,
                             Code = "DERM",
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 24, DateTimeKind.Utc).AddTicks(4654),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 472, DateTimeKind.Utc).AddTicks(3804),
                             Description = "Khoa Da liễu",
                             IsActive = true,
                             Name = "Dermatology"
@@ -468,7 +471,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                         new
                         {
                             EmployeeUserId = 1,
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 24, DateTimeKind.Utc).AddTicks(1767),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 472, DateTimeKind.Utc).AddTicks(1019),
                             Email = "admin@gmail.com",
                             FullName = "Super Admin",
                             IsActive = true,
@@ -513,8 +516,8 @@ namespace ClinicManagement.Infrastructure.Migrations
                         {
                             EmployeeId = 1,
                             RoleId = 1,
-                            AssignedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 24, DateTimeKind.Utc).AddTicks(1977),
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 24, DateTimeKind.Utc).AddTicks(1974)
+                            AssignedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 472, DateTimeKind.Utc).AddTicks(1167),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 472, DateTimeKind.Utc).AddTicks(1160)
                         });
                 });
 
@@ -565,7 +568,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                         new
                         {
                             ExamId = 1,
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 27, DateTimeKind.Utc).AddTicks(16),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 474, DateTimeKind.Utc).AddTicks(9001),
                             DepartmentId = 3,
                             Description = "Tư vấn và khám da liễu tổng quát, không bao gồm xét nghiệm",
                             IsActive = true,
@@ -575,7 +578,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                         new
                         {
                             ExamId = 2,
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 27, DateTimeKind.Utc).AddTicks(18),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 474, DateTimeKind.Utc).AddTicks(9003),
                             DepartmentId = 1,
                             Description = "Kiểm tra nhịp tim, đo ECG, siêu âm tim",
                             IsActive = true,
@@ -585,7 +588,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                         new
                         {
                             ExamId = 3,
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 27, DateTimeKind.Utc).AddTicks(20),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 474, DateTimeKind.Utc).AddTicks(9005),
                             DepartmentId = 2,
                             Description = "Khám lâm sàng, đánh giá triệu chứng thần kinh, tư vấn điều trị",
                             IsActive = true,
@@ -835,7 +838,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                     b.Property<string>("Note")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("StaffId")
+                    b.Property<int>("StaffId")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdatedAtUtc")
@@ -1008,25 +1011,25 @@ namespace ClinicManagement.Infrastructure.Migrations
                         new
                         {
                             RoleId = 1,
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 26, DateTimeKind.Utc).AddTicks(9922),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 474, DateTimeKind.Utc).AddTicks(8909),
                             Name = "Admin"
                         },
                         new
                         {
                             RoleId = 2,
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 26, DateTimeKind.Utc).AddTicks(9925),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 474, DateTimeKind.Utc).AddTicks(8912),
                             Name = "Staff_Patient"
                         },
                         new
                         {
                             RoleId = 3,
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 26, DateTimeKind.Utc).AddTicks(9926),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 474, DateTimeKind.Utc).AddTicks(8913),
                             Name = "Staff_Doctor"
                         },
                         new
                         {
                             RoleId = 4,
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 26, DateTimeKind.Utc).AddTicks(9928),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 474, DateTimeKind.Utc).AddTicks(8915),
                             Name = "Doctor"
                         });
                 });
@@ -1099,7 +1102,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                         new
                         {
                             Id = 1,
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 26, DateTimeKind.Utc).AddTicks(9967),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 474, DateTimeKind.Utc).AddTicks(8950),
                             DayOfWeek = 1,
                             EndTime = new TimeSpan(0, 12, 0, 0, 0),
                             IsActive = true,
@@ -1109,7 +1112,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                         new
                         {
                             Id = 2,
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 26, DateTimeKind.Utc).AddTicks(9974),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 474, DateTimeKind.Utc).AddTicks(8957),
                             DayOfWeek = 1,
                             EndTime = new TimeSpan(0, 17, 0, 0, 0),
                             IsActive = true,
@@ -1119,7 +1122,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                         new
                         {
                             Id = 3,
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 26, DateTimeKind.Utc).AddTicks(9975),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 474, DateTimeKind.Utc).AddTicks(8958),
                             DayOfWeek = 2,
                             EndTime = new TimeSpan(0, 12, 0, 0, 0),
                             IsActive = true,
@@ -1129,7 +1132,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                         new
                         {
                             Id = 4,
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 26, DateTimeKind.Utc).AddTicks(9977),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 474, DateTimeKind.Utc).AddTicks(8959),
                             DayOfWeek = 2,
                             EndTime = new TimeSpan(0, 17, 0, 0, 0),
                             IsActive = true,
@@ -1139,7 +1142,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                         new
                         {
                             Id = 11,
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 26, DateTimeKind.Utc).AddTicks(9978),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 474, DateTimeKind.Utc).AddTicks(8960),
                             DayOfWeek = 6,
                             EndTime = new TimeSpan(0, 12, 0, 0, 0),
                             IsActive = true,
@@ -1149,7 +1152,7 @@ namespace ClinicManagement.Infrastructure.Migrations
                         new
                         {
                             Id = 12,
-                            CreatedAtUtc = new DateTime(2025, 11, 5, 9, 16, 59, 26, DateTimeKind.Utc).AddTicks(9979),
+                            CreatedAtUtc = new DateTime(2025, 11, 4, 7, 20, 9, 474, DateTimeKind.Utc).AddTicks(8961),
                             DayOfWeek = 6,
                             EndTime = new TimeSpan(0, 17, 0, 0, 0),
                             IsActive = true,
@@ -1346,7 +1349,8 @@ namespace ClinicManagement.Infrastructure.Migrations
                     b.HasOne("ClinicManagement.Domain.Entity.Employee", "Staff")
                         .WithMany()
                         .HasForeignKey("StaffId")
-                        .OnDelete(DeleteBehavior.SetNull);
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
 
                     b.Navigation("Appointment");
 

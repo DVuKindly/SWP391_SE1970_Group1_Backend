@@ -107,13 +107,10 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
                 {
                     transaction.Status = "Success";
 
+                    // 🔹 FIX: Tìm registration request theo RegistrationRequestId từ transaction
                     var reg = await _context.RegistrationRequests
                         .Include(r => r.Exam)
-                        .FirstOrDefaultAsync(r =>
-                            r.AppointmentId == transaction.AppointmentId ||
-                            (r.Status == "Contacted" &&
-                             (r.Fee == transaction.Amount || r.Exam!.Price == transaction.Amount))
-                        );
+                        .FirstOrDefaultAsync(r => r.RegistrationRequestId == transaction.RegistrationRequestId);
 
                     if (reg != null)
                     {
