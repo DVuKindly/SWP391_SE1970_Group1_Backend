@@ -21,40 +21,72 @@ namespace ClinicManagement.Infrastructure.Services.Prescription
             _email = email;
         }
 
-        // 🔹 1. Danh sách bệnh nhân đã khám (Examined)
-        public async Task<ServiceResult<List<ExaminedPatientDto>>> GetExaminedPatientsAsync(string? keyword = null)
+        // ✅ 1. Lấy danh sách đơn thuốc thuộc các bệnh nhân của bác sĩ
+        public async Task<ServiceResult<List<PrescriptionResponseDto>>> GetAllPrescriptionsForDoctorAsync(int doctorId)
         {
-            var query = _context.RegistrationRequests
-                .Include(r => r.Exam)
-                .Include(r => r.Appointment)
-                .Where(r => r.Status == "Examined" && r.AppointmentId != null);
-
-            if (!string.IsNullOrWhiteSpace(keyword))
-            {
-                var kw = keyword.Trim().ToLower();
-                query = query.Where(r =>
-                    r.FullName.ToLower().Contains(kw) ||
-                    r.Email.ToLower().Contains(kw) ||
-                    r.Phone.ToLower().Contains(kw));
-            }
-
-            var list = await query
-                .OrderByDescending(r => r.ProcessedAt)
-                .Select(r => new ExaminedPatientDto
+            var list = await _context.Prescriptions
+                .Include(p => p.Details)
+                .Include(p => p.Appointment)
+                    .ThenInclude(a => a.Patient)
+                .Where(p => p.Appointment.DoctorId == doctorId)
+                .OrderByDescending(p => p.CreatedAtUtc)
+                .Select(p => new PrescriptionResponseDto
                 {
-                    AppointmentId = r.AppointmentId ?? 0,
-                    FullName = r.FullName,
-                    Email = r.Email,
-                    ExamName = r.Exam != null ? r.Exam.Name : "(Không rõ)",
-                    ExaminedAt = r.ProcessedAt ?? NowVN
+                    PrescriptionId = p.PrescriptionId,
+                    PatientName = p.Appointment.Patient.FullName,
+                    Diagnosis = p.Diagnosis,
+                    Note = p.Note,
+                    CreatedAtUtc = p.CreatedAtUtc,
+                    Medicines = p.Details.Select(d => new PrescriptionMedicineDto
+                    {
+                        MedicineName = d.MedicineName,
+                        Dosage = d.Dosage,
+                        Frequency = d.Frequency,
+                        Duration = d.Duration,
+                        Instruction = d.Instruction
+                    }).ToList()
                 })
                 .ToListAsync();
 
-            return ServiceResult<List<ExaminedPatientDto>>.Ok(list);
+            return ServiceResult<List<PrescriptionResponseDto>>.Ok(list);
         }
 
-        // 🔹 2. Kê đơn thuốc mới
-        public async Task<ServiceResult<PrescriptionResponseDto>> CreatePrescriptionAsync(PrescriptionRequestDto req, int staffId)
+        // ✅ 2. Xem chi tiết đơn thuốc của bệnh nhân thuộc bác sĩ
+        public async Task<ServiceResult<PrescriptionResponseDto>> GetPrescriptionDetailForDoctorAsync(int id, int doctorId)
+        {
+            var p = await _context.Prescriptions
+                .Include(x => x.Details)
+                .Include(x => x.Appointment).ThenInclude(a => a.Patient)
+                .FirstOrDefaultAsync(x => x.PrescriptionId == id);
+
+            if (p == null)
+                return ServiceResult<PrescriptionResponseDto>.Fail("Không tìm thấy đơn thuốc.");
+
+            if (p.Appointment.DoctorId != doctorId)
+                return ServiceResult<PrescriptionResponseDto>.Fail("Bạn không có quyền xem đơn thuốc này.");
+
+            var dto = new PrescriptionResponseDto
+            {
+                PrescriptionId = p.PrescriptionId,
+                PatientName = p.Appointment.Patient.FullName,
+                Diagnosis = p.Diagnosis,
+                Note = p.Note,
+                CreatedAtUtc = p.CreatedAtUtc,
+                Medicines = p.Details.Select(d => new PrescriptionMedicineDto
+                {
+                    MedicineName = d.MedicineName,
+                    Dosage = d.Dosage,
+                    Frequency = d.Frequency,
+                    Duration = d.Duration,
+                    Instruction = d.Instruction
+                }).ToList()
+            };
+
+            return ServiceResult<PrescriptionResponseDto>.Ok(dto);
+        }
+
+        // ✅ 3. Kê đơn thuốc mới (chỉ cho bệnh nhân của mình)
+        public async Task<ServiceResult<PrescriptionResponseDto>> CreatePrescriptionAsync(PrescriptionRequestDto req, int doctorId)
         {
             var appointment = await _context.Appointments
                 .Include(a => a.Patient)
@@ -62,6 +94,9 @@ namespace ClinicManagement.Infrastructure.Services.Prescription
 
             if (appointment == null)
                 return ServiceResult<PrescriptionResponseDto>.Fail("Không tìm thấy lịch khám.");
+
+            if (appointment.DoctorId != doctorId)
+                return ServiceResult<PrescriptionResponseDto>.Fail("Bạn không có quyền kê đơn cho bệnh nhân này.");
 
             var reg = await _context.RegistrationRequests
                 .FirstOrDefaultAsync(r => r.AppointmentId == appointment.AppointmentId);
@@ -72,7 +107,7 @@ namespace ClinicManagement.Infrastructure.Services.Prescription
             var prescription = new Domain.Entity.Prescription
             {
                 AppointmentId = appointment.AppointmentId,
-                StaffId = staffId,
+                StaffId = doctorId,
                 Diagnosis = req.Diagnosis,
                 Note = req.Note,
                 CreatedAtUtc = NowVN
@@ -106,45 +141,8 @@ namespace ClinicManagement.Infrastructure.Services.Prescription
             }, "Đã kê đơn thuốc thành công.");
         }
 
-        // 🔹 3. Danh sách tất cả đơn thuốc
-        public async Task<ServiceResult<List<PrescriptionResponseDto>>> GetAllPrescriptionsAsync(int? doctorId = null, int? patientId = null)
-        {
-            var query = _context.Prescriptions
-                .Include(p => p.Details)
-                .Include(p => p.Appointment)
-                    .ThenInclude(a => a.Patient)
-                .AsQueryable();
-
-            if (doctorId.HasValue)
-                query = query.Where(p => p.Appointment.DoctorId == doctorId.Value);
-            if (patientId.HasValue)
-                query = query.Where(p => p.Appointment.PatientId == patientId.Value);
-
-            var list = await query
-                .OrderByDescending(p => p.CreatedAtUtc)
-                .Select(p => new PrescriptionResponseDto
-                {
-                    PrescriptionId = p.PrescriptionId,
-                    PatientName = p.Appointment.Patient.FullName,
-                    Diagnosis = p.Diagnosis,
-                    Note = p.Note,
-                    CreatedAtUtc = p.CreatedAtUtc,
-                    Medicines = p.Details.Select(d => new PrescriptionMedicineDto
-                    {
-                        MedicineName = d.MedicineName,
-                        Dosage = d.Dosage,
-                        Frequency = d.Frequency,
-                        Duration = d.Duration,
-                        Instruction = d.Instruction
-                    }).ToList()
-                })
-                .ToListAsync();
-
-            return ServiceResult<List<PrescriptionResponseDto>>.Ok(list);
-        }
-
-        // 🔹 4. Chi tiết đơn thuốc
-        public async Task<ServiceResult<PrescriptionResponseDto>> GetPrescriptionDetailAsync(int id)
+        // ✅ 4. Cập nhật đơn thuốc (chỉ đơn của bác sĩ)
+        public async Task<ServiceResult<PrescriptionResponseDto>> UpdatePrescriptionForDoctorAsync(int id, PrescriptionRequestDto req, int doctorId)
         {
             var p = await _context.Prescriptions
                 .Include(x => x.Details)
@@ -154,36 +152,8 @@ namespace ClinicManagement.Infrastructure.Services.Prescription
             if (p == null)
                 return ServiceResult<PrescriptionResponseDto>.Fail("Không tìm thấy đơn thuốc.");
 
-            var dto = new PrescriptionResponseDto
-            {
-                PrescriptionId = p.PrescriptionId,
-                PatientName = p.Appointment.Patient.FullName,
-                Diagnosis = p.Diagnosis,
-                Note = p.Note,
-                CreatedAtUtc = p.CreatedAtUtc,
-                Medicines = p.Details.Select(d => new PrescriptionMedicineDto
-                {
-                    MedicineName = d.MedicineName,
-                    Dosage = d.Dosage,
-                    Frequency = d.Frequency,
-                    Duration = d.Duration,
-                    Instruction = d.Instruction
-                }).ToList()
-            };
-
-            return ServiceResult<PrescriptionResponseDto>.Ok(dto);
-        }
-
-        // 🔹 5. Cập nhật đơn thuốc
-        public async Task<ServiceResult<PrescriptionResponseDto>> UpdatePrescriptionAsync(int id, PrescriptionRequestDto req, int staffId)
-        {
-            var p = await _context.Prescriptions
-                .Include(x => x.Details)
-                .Include(x => x.Appointment).ThenInclude(a => a.Patient)
-                .FirstOrDefaultAsync(x => x.PrescriptionId == id);
-
-            if (p == null)
-                return ServiceResult<PrescriptionResponseDto>.Fail("Không tìm thấy đơn thuốc.");
+            if (p.Appointment.DoctorId != doctorId)
+                return ServiceResult<PrescriptionResponseDto>.Fail("Bạn không có quyền sửa đơn thuốc này.");
 
             p.Diagnosis = req.Diagnosis;
             p.Note = req.Note;
@@ -217,15 +187,19 @@ namespace ClinicManagement.Infrastructure.Services.Prescription
             }, "Cập nhật đơn thuốc thành công.");
         }
 
-        // 🔹 6. Xoá đơn thuốc
-        public async Task<ServiceResult<bool>> DeletePrescriptionAsync(int id)
+        // ✅ 5. Xoá đơn thuốc
+        public async Task<ServiceResult<bool>> DeletePrescriptionForDoctorAsync(int id, int doctorId)
         {
             var p = await _context.Prescriptions
                 .Include(x => x.Details)
+                .Include(x => x.Appointment)
                 .FirstOrDefaultAsync(x => x.PrescriptionId == id);
 
             if (p == null)
                 return ServiceResult<bool>.Fail("Không tìm thấy đơn thuốc.");
+
+            if (p.Appointment.DoctorId != doctorId)
+                return ServiceResult<bool>.Fail("Bạn không có quyền xoá đơn thuốc này.");
 
             _context.PrescriptionDetails.RemoveRange(p.Details);
             _context.Prescriptions.Remove(p);
@@ -234,8 +208,8 @@ namespace ClinicManagement.Infrastructure.Services.Prescription
             return ServiceResult<bool>.Ok(true, "Đã xoá đơn thuốc.");
         }
 
-        // 🔹 7. Gửi lại email đơn thuốc cho bệnh nhân
-        public async Task<ServiceResult<string>> SendPrescriptionEmailAsync(int id)
+        // ✅ 6. Gửi lại email (chỉ nếu đơn thuộc bác sĩ)
+        public async Task<ServiceResult<string>> SendPrescriptionEmailForDoctorAsync(int id, int doctorId)
         {
             var p = await _context.Prescriptions
                 .Include(x => x.Details)
@@ -244,6 +218,9 @@ namespace ClinicManagement.Infrastructure.Services.Prescription
 
             if (p == null)
                 return ServiceResult<string>.Fail("Không tìm thấy đơn thuốc.");
+
+            if (p.Appointment.DoctorId != doctorId)
+                return ServiceResult<string>.Fail("Bạn không có quyền gửi email đơn thuốc này.");
 
             var req = new PrescriptionRequestDto
             {
@@ -264,7 +241,7 @@ namespace ClinicManagement.Infrastructure.Services.Prescription
             return ServiceResult<string>.Ok("Đã gửi lại email đơn thuốc cho bệnh nhân.");
         }
 
-        // 🔸 Helper gửi email
+        // Helper gửi email
         private async Task SendPrescriptionEmailInternalAsync(string? email, string fullName, PrescriptionRequestDto req)
         {
             if (string.IsNullOrEmpty(email)) return;

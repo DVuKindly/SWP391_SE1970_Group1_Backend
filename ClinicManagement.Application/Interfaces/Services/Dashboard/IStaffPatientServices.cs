@@ -30,7 +30,7 @@ namespace ClinicManagement.Application.Interfaces.Services.Dashboard
  
         Task<ServiceResult<string>> ExecuteDirectPaymentAsync(int requestId, int staffId, int examId);
 
-        Task<ServiceResult<string>> MarkAsExaminedAsync(int requestId, int staffId);
+        Task<ServiceResult<string>> MarkAsExaminedAsync(int requestId);
 
     }
 }
