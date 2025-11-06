@@ -13,7 +13,6 @@ namespace ClinicManagement.Application.Interfaces.Prescription
         // 🔹 1. Lấy danh sách tất cả đơn thuốc của bác sĩ (theo doctorId)
         Task<ServiceResult<List<PrescriptionResponseDto>>> GetAllPrescriptionsForDoctorAsync(int doctorId);
 
-<<<<<<< HEAD
         // 🔹 2. Xem chi tiết 1 đơn thuốc (chỉ nếu đơn đó thuộc bệnh nhân của bác sĩ)
         Task<ServiceResult<PrescriptionResponseDto>> GetPrescriptionDetailForDoctorAsync(int id, int doctorId);
 
@@ -30,12 +29,6 @@ namespace ClinicManagement.Application.Interfaces.Prescription
         Task<ServiceResult<string>> SendPrescriptionEmailForDoctorAsync(int id, int doctorId);
 
         // 🔹 7. (Tuỳ chọn) Tổng hợp thống kê thanh toán nếu sau này cần
-=======
-        Task<ServiceResult<PrescriptionResponseDto>> CreatePrescriptionAsync(PrescriptionRequestDto request);
-        Task<ServiceResult<PrescriptionResponseDto>> UpdatePrescriptionAsync(int id, PrescriptionRequestDto request);
-        Task<ServiceResult<bool>> DeletePrescriptionAsync(int id);
-        Task<ServiceResult<string>> SendPrescriptionEmailAsync(int id);
->>>>>>> edc0bd1dc47ff96986fe08bc40d44b78f6a5ebea
         Task<ServiceResult<PatientPaymentSummaryDto>> GetPaymentSummaryAsync(DateTime? from = null, DateTime? to = null);
     }
 }
