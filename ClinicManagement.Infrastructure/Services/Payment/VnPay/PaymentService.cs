@@ -115,7 +115,7 @@ namespace ClinicManagement.Infrastructure.Services.Payment.VNPAY
                     if (reg != null)
                     {
                         reg.PaymentStatus = PaymentStatus.VnPayPaid; 
-                        reg.Status = "Scheduled"; 
+                        reg.Status = "Paid"; 
                         reg.ProcessedAt = DateTime.Now;
                         reg.IsProcessed = true;
                         reg.Fee = reg.Exam?.Price ?? transaction.Amount;
